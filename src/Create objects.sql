@@ -9,7 +9,7 @@ go
 create or alter procedure scheduler.CreateAgentJob
 	@jobName nvarchar(128)
 	,@command nvarchar(max)
-	,@frequencyType varchar(5)
+	,@frequencyType varchar(6)
 	,@frequencyInterval tinyint /* Ignored for day, every N for Hour/Minute */
 	,@startTime time
 	,@notifyOperator nvarchar(128)
@@ -19,9 +19,9 @@ begin
 	set xact_abort on;
 	set nocount on;
 
-	declare @FREQUENCY_DAY varchar(5) = 'day'
-		,@FREQUENCY_HOUR varchar(5) = 'hour'
-		,@FREQUENCY_MINUTE varchar(5) = 'minute'
+	declare @FREQUENCY_DAY varchar(6) = 'day'
+		,@FREQUENCY_HOUR varchar(6) = 'hour'
+		,@FREQUENCY_MINUTE varchar(6) = 'minute'
 		,@ACTIVE_START_DATE int = 20160101;
 
 	/* Validate parameters for basic correctness */
@@ -154,7 +154,7 @@ begin
 
 		set @freq_subday_type = case @frequencyType
 									when @FREQUENCY_DAY then 1
-									when -1 then 2 /* NYI: Seconds */
+									when 'second' then 2 /* NYI: Seconds */
 									when @FREQUENCY_HOUR then 8
 									when @FREQUENCY_MINUTE then 4
 								end;
@@ -174,5 +174,103 @@ begin
 				,@active_end_time=235959;
 
 	commit tran
+end
+go
+
+/* 030 - Create table to store task details */
+if exists (
+	select 1
+	from sys.tables as t
+	where t.temporal_type <> 0 
+	and t.name = 'task'
+	and t.schema_id = schema_id('scheduler')
+)
+begin
+	alter table scheduler.task set (system_versioning = off);
+end
+go
+drop table if exists scheduler.Task;
+drop table if exists scheduler.TaskHistory;
+go
+create table scheduler.Task
+(
+	TaskId int identity(1,1) not null
+	,Identifier nvarchar(128) not null
+	,TSQLCommand nvarchar(max) not null
+	,StartTime time not null
+	,FrequencyType tinyint not null
+	,FrequencyTypeDesc as case FrequencyType when 1 then 'Day' when 2 then 'Hour' when 3 then 'Minute' when 4 then 'Second' end
+	,FrequencyInterval smallint not null
+	,NotifyOnFailureOperator nvarchar(128) not null
+	,SysStartTime datetime2 generated always as row start not null
+	,SysEndTime datetime2 generated always as row end not null
+	,period for system_time (SysStartTime, SysEndTime)
+	,constraint PK_Task primary key clustered (TaskId) with (data_compression = page)
+	,constraint UQ_Task_Name unique nonclustered (Identifier) with (data_compression = page)
+) with (system_versioning = on (history_table = scheduler.TaskHistory))
+go
+
+/* 040 - Create a job to turn a task into a job */
+create or alter procedure scheduler.CreateJobFromTask
+	@taskId int = null
+	,@identifier nvarchar(128) = null
+	,@overwriteExisting bit = 0
+as
+begin
+	set xact_abort on;
+	set nocount on;
+
+	if @taskId is null and @Identifier is null
+	begin
+		;throw 50000, 'One of @taskId or @identifier must be specified', 1;
+	end
+
+	if @overwriteExisting is null
+	begin
+		;throw 50000, '@overwriteExisting cannot be null', 1;
+	end
+
+	if @taskId is null
+	begin
+		select @taskId = t.TaskId
+		from scheduler.Task as t
+		where t.Identifier = @identifier;
+	end
+
+	if not exists (
+		select 1
+		from scheduler.Task as t
+		where t.TaskId = @taskId
+	)
+	begin
+		;throw 50000, 'Specified Task does not exist', 1;
+	end
+
+	
+	
+	declare @jobName nvarchar(128)
+			,@command nvarchar(max)
+			,@frequencyType varchar(5)
+			,@frequencyInterval tinyint
+			,@startTime time
+			,@notifyOperator nvarchar(128);
+
+	select	@jobName = t.Identifier
+			,@command = t.TSQLCommand
+			,@frequencyType = t.FrequencyTypeDesc
+			,@frequencyInterval = t.FrequencyInterval
+			,@startTime = t.StartTime
+			,@notifyOperator = t.NotifyOnFailureOperator
+	from	scheduler.Task as t
+	where	t.TaskId = @taskId;
+
+	exec scheduler.CreateAgentJob
+			@jobName = @jobName
+			,@command = @command
+			,@frequencyType = @frequencyType
+			,@frequencyInterval = @frequencyInterval
+			,@startTime = @startTime
+			,@notifyOperator = @notifyOperator
+			,@overwriteExisting = @overwriteExisting;
 end
 go
