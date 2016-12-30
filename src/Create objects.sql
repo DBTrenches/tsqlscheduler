@@ -224,6 +224,7 @@ create table scheduler.Task
 	,NotifyOnFailureOperator nvarchar(128) not null
 	,IsNotifyOnFailure bit not null constraint DF_Task_IsNotifyOnFailure default (1)
 	,IsEnabled bit not null constraint DF_Task_IsEnabled default (1)
+	,AvailabilityGroup nvarchar(128) null
 	,SysStartTime datetime2 generated always as row start not null
 	,SysEndTime datetime2 generated always as row end not null
 	,period for system_time (SysStartTime, SysEndTime)
@@ -302,6 +303,31 @@ begin
 end
 go
 
+/* Add procedure to test for AG replica status 
+	- Use a procedure rather than directly querying the system views to enable testing without creating/requiring AGs */
+create or alter function scheduler.GetAvailabilityGroupRole
+(
+	@availabilityGroupName nvarchar(128)
+)
+returns nvarchar(60)
+as
+begin
+	declare @role nvarchar(60);
+
+	select		@role = ars.role_desc
+	from		sys.dm_hadr_availability_replica_states ars
+	inner join	sys.availability_groups ag
+	on			ars.group_id = ag.group_id
+	where		ag.name = @availabilityGroupName
+	and			ars.is_local = 1;
+
+	/* Test overrides */
+	/* set @role = 'PRIMARY' */
+
+	return coalesce(@role,'');
+end
+go
+
 /* Add execution logging table */
 drop table if exists scheduler.TaskExecution;
 go
@@ -342,15 +368,23 @@ begin
 	declare @executionId int
 			,@command nvarchar(max)
 			,@isEnabled bit
-			,@isNotifyOnFailure bit;
+			,@isNotifyOnFailure bit
+			,@availabilityGroupName nvarchar(128);
 
 	select	@command = t.TSQLCommand
 			,@isEnabled = t.IsEnabled
 			,@isNotifyOnFailure = t.IsNotifyOnFailure
+			,@availabilityGroupName = t.AvailabilityGroup
 	from	scheduler.Task as t
 	where	t.TaskId = @taskId;
 
+	/* Run the task only if it is enabled and we're on the right replica (or no AG specified) */
 	if @isEnabled = 0
+	begin
+		return;
+	end
+
+	if @availabilityGroupName is not null and scheduler.GetAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY'
 	begin
 		return;
 	end
