@@ -1,10 +1,21 @@
 # tsqlScheduler
 
-Create agent jobs from definitions stored in SQL tables.
+Create agent jobs from definitions stored in SQL tables. asd
+## Installation
+asdasd
+Run the script src/Create Objects.sql in the target database.  This will create all necessary objects, dropping any that already exist.  The objects will all be created in the scheduler schema.
 
-Roadmap:
-- Wrapper procs around msdb agent job procedures
-- Schema to store definition of jobs (time, command, name)
-- Framework to force executions to log into a schema that supports monitoring without using msdb
-- AG Support - Create jobs on all potential hosts
-- AG Support - Link a job to an AG and only execute the job if the replica is the primary
+The script requires SQL 2016 SP1.
+
+## Usage
+
+Add tasks to the scheduler.Task table, and then run the procedure scheduler.CreateJobFromTask passing either the task Id or Identifier to create a SQL Agent job which will execute your task.
+
+You can monitor executions via the scheduler.TaskExecution table.  Task configuration history is available in the scheduler.TaskHistory table, or by querying the scheduler.Task table with a temporal query.
+
+## Tests
+
+ 
+The tests are currently hardcoded to point at a database called tsqlscheduler on a local instance.  A successful run looks something like this:
+
+![Pester Tests](/PesterTests.png?raw=true "Pester Test Results")
