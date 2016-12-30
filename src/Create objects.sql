@@ -153,7 +153,6 @@ begin
 				,@notify_email_operator_name=@notifyOperator
 				,@description = @jobDescription;
 
-
 		/* Add a job server (specifies this job should execute on this server) */
 		EXEC msdb.dbo.sp_add_jobserver @job_name=@jobName;
 
