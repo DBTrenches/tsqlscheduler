@@ -1,11 +1,11 @@
-/* 010 - Create scheduler schema */
+/* Create scheduler schema */
 if schema_id('scheduler') is null
 begin
 	exec sp_executesql N'create schema scheduler authorization dbo;';
 end
 go
 
-/* 020 - Create agent job creation proc */
+/* Create agent job creation proc */
 create or alter procedure scheduler.CreateAgentJob
 	@jobName nvarchar(128)
 	,@command nvarchar(max)
@@ -198,7 +198,7 @@ begin
 end
 go
 
-/* 030 - Create table to store task details */
+/* Create table to store task details */
 if exists (
 	select 1
 	from sys.tables as t
@@ -231,7 +231,7 @@ create table scheduler.Task
 ) with (system_versioning = on (history_table = scheduler.TaskHistory))
 go
 
-/* 040 - Create a proc to turn a task into a job */
+/* Create a proc to turn a task into a job */
 create or alter procedure scheduler.CreateJobFromTask
 	@taskId int = null
 	,@identifier nvarchar(128) = null
@@ -301,11 +301,29 @@ begin
 end
 go
 
-/* 050 - Add a proc to execute a task */
+/* Add execution logging table */
+drop table if exists scheduler.TaskExecution;
+go
+create table scheduler.TaskExecution
+(
+	ExecutionId int identity(1,1) not null
+	,TaskId int not null
+	,StartDateTime datetime2(3) not null constraint DF_TaskExecution_StartDateTime default getutcdate()
+	,EndDateTime datetime2(3) null
+	,IsError bit not null constraint DF_TaskExecution_IsError default (0)
+	,ResultMessage nvarchar(max) null
+	,constraint PK_TaskExecution primary key clustered (ExecutionId) with (data_compression = page)
+);
+go
+
+/* Add a proc to execute a task */
 create or alter procedure scheduler.ExecuteTask
 	@taskId int
 as
 begin
+	set xact_abort on;
+	set nocount on;
+
 	if @taskId is null
 	begin
 		;throw 50000, '@taskId must be specified', 1;
@@ -320,12 +338,43 @@ begin
 		;throw 50000, 'Specified Task does not exist', 1;
 	end
 
-	declare @command nvarchar(max);
+	declare @executionId int
+			,@command nvarchar(max);
+
+	insert into scheduler.TaskExecution
+	( TaskId )
+	values
+	( @taskId )
+
+	select @executionId = scope_identity();
 
 	select	@command = t.TSQLCommand
 	from	scheduler.Task as t
 	where	t.TaskId = @taskId;
 
-	exec sp_executesql @command;
+	declare @errorNumber int
+			,@resultMessage nvarchar(max)
+			,@isError bit = 0;
+
+	begin try
+		exec sp_executesql @command;
+	end try
+	begin catch
+		set @isError = 1;
+		set @errorNumber = error_number();
+		set @resultMessage = cast(@errorNumber as varchar(10)) + ' - ' + error_message();
+	end catch
+
+	update scheduler.TaskExecution
+		set IsError = @isError
+			,ResultMessage = @resultMessage
+			,EndDateTime = getutcdate()
+	where ExecutionId = @executionId;
+
+	/* Throw here to allow agent to message the failure operator */
+	if @isError = 1
+	begin
+		;throw 50000, @resultMessage, 1;
+	end
 end
 go
