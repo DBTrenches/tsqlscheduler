@@ -77,3 +77,23 @@ go
 /* Check task execution history */
 select *
 from scheduler.TaskExecution
+go
+/* Update failjob to no longer notify on error, and verify it doesn't throw */
+update scheduler.Task set IsNotifyOnFailure = 0 where Identifier = 'failjob';
+declare @id int = (select TaskId from scheduler.Task where identifier = 'failjob')
+exec scheduler.ExecuteTask @taskId = @id;
+go
+/* Now disable and verify no result set returned (aborted select 1/0) */
+update scheduler.Task set IsEnabled = 0 where Identifier = 'failjob';
+declare @id int = (select TaskId from scheduler.Task where identifier = 'failjob')
+exec scheduler.ExecuteTask @taskId = @id;
+go
+/* Consult history table to verify notify on failure behaviour changed over time */
+select te.*, h.IsEnabled, h.IsNotifyOnFailure
+from scheduler.taskexecution as te
+cross apply (
+select top 1 *
+from scheduler.TaskHistory as th
+where te.StartDateTime >= th.SysStartTime
+and te.StartDateTime < th.SysEndTime
+) as h

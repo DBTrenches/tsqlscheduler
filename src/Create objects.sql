@@ -223,6 +223,8 @@ create table scheduler.Task
 	,FrequencyTypeDesc as case FrequencyType when 1 then 'Day' when 2 then 'Hour' when 3 then 'Minute' when 4 then 'Second' end
 	,FrequencyInterval smallint not null
 	,NotifyOnFailureOperator nvarchar(128) not null
+	,IsNotifyOnFailure bit not null constraint DF_Task_IsNotifyOnFailure default (1)
+	,IsEnabled bit not null constraint DF_Task_IsEnabled default (1)
 	,SysStartTime datetime2 generated always as row start not null
 	,SysEndTime datetime2 generated always as row end not null
 	,period for system_time (SysStartTime, SysEndTime)
@@ -339,7 +341,20 @@ begin
 	end
 
 	declare @executionId int
-			,@command nvarchar(max);
+			,@command nvarchar(max)
+			,@isEnabled bit
+			,@isNotifyOnFailure bit;
+
+	select	@command = t.TSQLCommand
+			,@isEnabled = t.IsEnabled
+			,@isNotifyOnFailure = t.IsNotifyOnFailure
+	from	scheduler.Task as t
+	where	t.TaskId = @taskId;
+
+	if @isEnabled = 0
+	begin
+		return;
+	end
 
 	insert into scheduler.TaskExecution
 	( TaskId )
@@ -347,10 +362,6 @@ begin
 	( @taskId )
 
 	select @executionId = scope_identity();
-
-	select	@command = t.TSQLCommand
-	from	scheduler.Task as t
-	where	t.TaskId = @taskId;
 
 	declare @errorNumber int
 			,@resultMessage nvarchar(max)
@@ -372,7 +383,7 @@ begin
 	where ExecutionId = @executionId;
 
 	/* Throw here to allow agent to message the failure operator */
-	if @isError = 1
+	if @isError = 1 and @isNotifyOnFailure = 1
 	begin
 		;throw 50000, @resultMessage, 1;
 	end
