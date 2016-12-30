@@ -48,3 +48,32 @@ go
 /* Add print step to produce output and allow testing execution framework (did the ExecuteTask proc execute?) */
 update scheduler.task set TSQLCommand = 'print ''hi from job''' where Identifier = 'test job 2';
 exec scheduler.CreateJobFromTask @identifier = 'test job 2', @overwriteExisting = 1;
+/* Add a task which will fail */
+INSERT INTO scheduler.Task
+           (Identifier
+           ,TSQLCommand
+           ,StartTime
+           ,FrequencyType
+           ,FrequencyInterval
+           ,NotifyOnFailureOperator)
+     VALUES
+    ('failjob'
+    ,'select 1/0'
+    ,'00:00'
+    ,1
+    ,0
+    ,'Test Operator');
+go
+exec scheduler.CreateJobFromTask @identifier = 'failjob', @overwriteExisting = 1;
+go
+declare @id int = (select TaskId from scheduler.Task where identifier = 'failjob')
+/* Should throw an error */
+exec scheduler.ExecuteTask @taskId = @id;
+go
+/* This agent job should trigger failure notification 
+	- Note if you don't have DB mail configure the notification won't get sent */
+exec msdb.dbo.sp_start_job @job_name = 'failjob'
+go
+/* Check task execution history */
+select *
+from scheduler.TaskExecution

@@ -302,12 +302,28 @@ end
 go
 
 /* Add execution logging table */
+drop table if exists scheduler.TaskExecution;
+go
+create table scheduler.TaskExecution
+(
+	ExecutionId int identity(1,1) not null
+	,TaskId int not null
+	,StartDateTime datetime2(3) not null constraint DF_TaskExecution_StartDateTime default getutcdate()
+	,EndDateTime datetime2(3) null
+	,IsError bit not null constraint DF_TaskExecution_IsError default (0)
+	,ResultMessage nvarchar(max) null
+	,constraint PK_TaskExecution primary key clustered (ExecutionId) with (data_compression = page)
+);
+go
 
 /* Add a proc to execute a task */
 create or alter procedure scheduler.ExecuteTask
 	@taskId int
 as
 begin
+	set xact_abort on;
+	set nocount on;
+
 	if @taskId is null
 	begin
 		;throw 50000, '@taskId must be specified', 1;
@@ -322,12 +338,43 @@ begin
 		;throw 50000, 'Specified Task does not exist', 1;
 	end
 
-	declare @command nvarchar(max);
+	declare @executionId int
+			,@command nvarchar(max);
+
+	insert into scheduler.TaskExecution
+	( TaskId )
+	values
+	( @taskId )
+
+	select @executionId = scope_identity();
 
 	select	@command = t.TSQLCommand
 	from	scheduler.Task as t
 	where	t.TaskId = @taskId;
 
-	exec sp_executesql @command;
+	declare @errorNumber int
+			,@resultMessage nvarchar(max)
+			,@isError bit = 0;
+
+	begin try
+		exec sp_executesql @command;
+	end try
+	begin catch
+		set @isError = 1;
+		set @errorNumber = error_number();
+		set @resultMessage = cast(@errorNumber as varchar(10)) + ' - ' + error_message();
+	end catch
+
+	update scheduler.TaskExecution
+		set IsError = @isError
+			,ResultMessage = @resultMessage
+			,EndDateTime = getutcdate()
+	where ExecutionId = @executionId;
+
+	/* Throw here to allow agent to message the failure operator */
+	if @isError = 1
+	begin
+		;throw 50000, @resultMessage, 1;
+	end
 end
 go
