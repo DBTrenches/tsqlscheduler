@@ -231,7 +231,7 @@ create table scheduler.Task
 ) with (system_versioning = on (history_table = scheduler.TaskHistory))
 go
 
-/* 040 - Create a job to turn a task into a job */
+/* 040 - Create a proc to turn a task into a job */
 create or alter procedure scheduler.CreateJobFromTask
 	@taskId int = null
 	,@identifier nvarchar(128) = null
