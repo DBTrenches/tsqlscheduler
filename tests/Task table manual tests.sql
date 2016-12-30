@@ -97,3 +97,8 @@ from scheduler.TaskHistory as th
 where te.StartDateTime >= th.SysStartTime
 and te.StartDateTime < th.SysEndTime
 ) as h
+go
+/* Add a fictional AG to the job and verify it doesn't execute */
+update scheduler.Task set AvailabilityGroup = 'doesnotexist', IsEnabled = 1 where Identifier = 'failjob';
+exec scheduler.ExecuteTask @identifier = 'failjob'
+
