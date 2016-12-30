@@ -1,8 +1,19 @@
-﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
-. "$here\$sut"
+﻿. .\TestHelpers.ps1
 
-Describe "GetAvailabilityGroup" {
+# This function is only invoked directly by these tests & the underlying SQL implementation
+function GetAvailabilityGroup($availabilityGroup) {
+    $paramValue = "null"
+    
+    if($availabilityGroup -ne $null) {
+        $paramValue = "'" + $availabilityGroup + "'"
+    }
+    $query = "select scheduler.GetAvailabilityGroupRole($paramValue) as RoleDescription"
+
+    $result = Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query $query
+    return $result.RoleDescription
+}
+
+Describe "Function GetAvailabilityGroup" {
     It "returns primary when ALWAYS_PRIMARY is passed in" {
         GetAvailabilityGroup("ALWAYS_PRIMARY") | Should Be "PRIMARY"
     }

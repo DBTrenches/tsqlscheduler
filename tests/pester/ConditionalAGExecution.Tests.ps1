@@ -1,17 +1,24 @@
-﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
-. "$here\$sut"
+﻿. .\TestHelpers.ps1
 
-Describe "ConditionalAGExecution" {
+Describe "Task.AvailabilityGroup" {
     It "should execute tasks scheduled on the primary replica" {
-        ConditionalAGExecution("ALWAYS_PRIMARY") | Should Be 1
+        CleanupTasksAndExecutions
+        InsertTask -AvailabilityGroup "ALWAYS_PRIMARY"
+        ExecuteTask  
+        GetTaskExecutionCount | Should be 1
     }
 
     It "should not execute tasks scheduled on the secondary replica" {
-        ConditionalAGExecution("NEVER_PRIMARY") | Should Be 0
+        CleanupTasksAndExecutions
+        InsertTask -AvailabilityGroup "NEVER_PRIMARY"
+        ExecuteTask  
+        GetTaskExecutionCount | Should be 0
     }
 
     It "should execute tasks when no AG is specified" {
-        ConditionalAGExecution($null) | Should Be 1
+        CleanupTasksAndExecutions
+        InsertTask -AvailabilityGroup $null
+        ExecuteTask  
+        GetTaskExecutionCount | Should be 1
     }
 }

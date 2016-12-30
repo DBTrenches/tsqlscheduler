@@ -1,6 +1,6 @@
 ﻿. .\TestHelpers.ps1
 
-Describe "IsEnabled" {
+Describe "Task.IsEnabled" {
     It "should execute enabled tasks" {
         CleanupTasksAndExecutions
         InsertTask -IsEnabled $true
