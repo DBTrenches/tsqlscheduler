@@ -231,7 +231,7 @@ create table scheduler.Task
 ) with (system_versioning = on (history_table = scheduler.TaskHistory))
 go
 
-/* 040 - Create a job to turn a task into a job */
+/* 040 - Create a proc to turn a task into a job */
 create or alter procedure scheduler.CreateJobFromTask
 	@taskId int = null
 	,@identifier nvarchar(128) = null
@@ -275,16 +275,19 @@ begin
 			,@notifyOperator nvarchar(128)
 			,@description nvarchar(max);
 
-	set @description = 'Created from task ' + cast(@taskId as varchar(12));
+	declare @db nvarchar(max) = db_name(db_id());
+
+	set @description = 'Created from task ' + cast(@taskId as varchar(12)) + ' in database ' + @db;
 	
 	select	@jobName = t.Identifier
-			,@command = t.TSQLCommand
 			,@frequencyType = t.FrequencyTypeDesc
 			,@frequencyInterval = t.FrequencyInterval
 			,@startTime = t.StartTime
 			,@notifyOperator = t.NotifyOnFailureOperator
 	from	scheduler.Task as t
 	where	t.TaskId = @taskId;
+	
+	set @command = 'exec ' + @db + '.scheduler.ExecuteTask @taskId = ' + cast(@taskId as varchar(12)) + ';';
 
 	exec scheduler.CreateAgentJob
 			@jobName = @jobName
@@ -295,5 +298,34 @@ begin
 			,@notifyOperator = @notifyOperator
 			,@overwriteExisting = @overwriteExisting
 			,@description = @description;
+end
+go
+
+/* 050 - Add a proc to execute a task */
+create or alter procedure scheduler.ExecuteTask
+	@taskId int
+as
+begin
+	if @taskId is null
+	begin
+		;throw 50000, '@taskId must be specified', 1;
+	end
+
+	if not exists (
+		select 1
+		from scheduler.Task as t
+		where t.TaskId = @taskId
+	)
+	begin
+		;throw 50000, 'Specified Task does not exist', 1;
+	end
+
+	declare @command nvarchar(max);
+
+	select	@command = t.TSQLCommand
+	from	scheduler.Task as t
+	where	t.TaskId = @taskId;
+
+	exec sp_executesql @command;
 end
 go
