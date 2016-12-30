@@ -1,11 +1,11 @@
-/* 010 - Create scheduler schema */
+/* Create scheduler schema */
 if schema_id('scheduler') is null
 begin
 	exec sp_executesql N'create schema scheduler authorization dbo;';
 end
 go
 
-/* 020 - Create agent job creation proc */
+/* Create agent job creation proc */
 create or alter procedure scheduler.CreateAgentJob
 	@jobName nvarchar(128)
 	,@command nvarchar(max)
@@ -198,7 +198,7 @@ begin
 end
 go
 
-/* 030 - Create table to store task details */
+/* Create table to store task details */
 if exists (
 	select 1
 	from sys.tables as t
@@ -231,7 +231,7 @@ create table scheduler.Task
 ) with (system_versioning = on (history_table = scheduler.TaskHistory))
 go
 
-/* 040 - Create a proc to turn a task into a job */
+/* Create a proc to turn a task into a job */
 create or alter procedure scheduler.CreateJobFromTask
 	@taskId int = null
 	,@identifier nvarchar(128) = null
@@ -301,7 +301,9 @@ begin
 end
 go
 
-/* 050 - Add a proc to execute a task */
+/* Add execution logging table */
+
+/* Add a proc to execute a task */
 create or alter procedure scheduler.ExecuteTask
 	@taskId int
 as
