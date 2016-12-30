@@ -1,47 +1,24 @@
-﻿function ConditionalAGExecution_PrimaryExecutes {
+﻿function ConditionalAGExecution($agname) {
     # Cleanup
-    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "delete from scheduler.task; truncate table scheduler.taskexecution;"
+    $query = "delete from scheduler.task; truncate table scheduler.taskexecution;"
+    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query $query
+
+    $agparam = "null"
+    if($agname -ne $null) {
+        $agparam = "'" + $agname + "'"
+    }
 
     # Create task
-    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "insert into scheduler.task (identifier, tsqlcommand, starttime, frequencytype, frequencyinterval, notifyonfailureoperator, availabilitygroup) values ('ConditionalAGExecution', 'select @@servername', '00:00', 1, 0, 'Test Operator', 'ALWAYS_PRIMARY');"
+    $query = "insert into scheduler.task (identifier, tsqlcommand, starttime, frequencytype, frequencyinterval, notifyonfailureoperator, availabilitygroup) values ('ConditionalAGExecution', 'select @@servername', '00:00', 1, 0, 'Test Operator', $agparam);"
+    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query $query
 
     # Execute task
-    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "exec scheduler.ExecuteTask @identifier = 'ConditionalAGExecution';" | out-null
+    $query = "exec scheduler.ExecuteTask @identifier = 'ConditionalAGExecution';"
+    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query $query | out-null
 
     # Verify task completes
-    $result = Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "select count(*) as ExecutionCount from scheduler.Task as t join scheduler.TaskExecution as te on te.TaskId = t.TaskId where t.Identifier = 'ConditionalAGExecution'"
-
-    return $result.ExecutionCount
-}
-
-function ConditionalAGExecution_SecondaryDoesNotExecute {
-    # Cleanup
-    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "delete from scheduler.task; truncate table scheduler.taskexecution;"
-
-    # Create task
-    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "insert into scheduler.task (identifier, tsqlcommand, starttime, frequencytype, frequencyinterval, notifyonfailureoperator, availabilitygroup) values ('ConditionalAGExecution', 'select @@servername', '00:00', 1, 0, 'Test Operator', 'NEVER_PRIMARY');"
-
-    # Execute task
-    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "exec scheduler.ExecuteTask @identifier = 'ConditionalAGExecution';" | out-null
-
-    # Verify task completes
-    $result = Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "select count(*) as ExecutionCount from scheduler.Task as t join scheduler.TaskExecution as te on te.TaskId = t.TaskId where t.Identifier = 'ConditionalAGExecution'"
-
-    return $result.ExecutionCount
-}
-
-function ConditionalAGExecution_NoAGDoesExecute {
-    # Cleanup
-    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "delete from scheduler.task; truncate table scheduler.taskexecution;"
-
-    # Create task
-    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "insert into scheduler.task (identifier, tsqlcommand, starttime, frequencytype, frequencyinterval, notifyonfailureoperator, availabilitygroup) values ('ConditionalAGExecution', 'select @@servername', '00:00', 1, 0, 'Test Operator', null);"
-
-    # Execute task
-    Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "exec scheduler.ExecuteTask @identifier = 'ConditionalAGExecution';" | out-null
-
-    # Verify task completes
-    $result = Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query "select count(*) as ExecutionCount from scheduler.Task as t join scheduler.TaskExecution as te on te.TaskId = t.TaskId where t.Identifier = 'ConditionalAGExecution'"
+    $query = "select count(*) as ExecutionCount from scheduler.Task as t join scheduler.TaskExecution as te on te.TaskId = t.TaskId where t.Identifier = 'ConditionalAGExecution'"
+    $result = Invoke-Sqlcmd -ServerInstance . -Database tsqlscheduler -Query $query
 
     return $result.ExecutionCount
 }
