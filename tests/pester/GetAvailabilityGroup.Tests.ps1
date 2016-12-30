@@ -4,14 +4,14 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
 
 Describe "GetAvailabilityGroup" {
     It "returns primary when ALWAYS_PRIMARY is passed in" {
-        GetAvailabilityGroup_Primary | Should Be "PRIMARY"
+        GetAvailabilityGroup("ALWAYS_PRIMARY") | Should Be "PRIMARY"
     }
     
     It "returns secondary when NEVER_PRIMARY is passed in" {
-        GetAvailabilityGroup_Secondary | Should Be "SECONDARY"
+        GetAvailabilityGroup("NEVER_PRIMARY") | Should Be "SECONDARY"
     }
     
     It "returns blank when null is passed in" {
-        GetAvailabilityGroup_Null | Should Be ""
+        GetAvailabilityGroup($null) | Should Be ""
     }
 }
