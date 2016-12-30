@@ -243,9 +243,9 @@ begin
 	set xact_abort on;
 	set nocount on;
 
-	if @taskId is null and @Identifier is null
+	if (@taskId is null and @identifier is null) or (@taskId is not null and @identifier is not null)
 	begin
-		;throw 50000, 'One of @taskId or @identifier must be specified', 1;
+		;throw 50000, 'Only one of @taskId or @identifier must be specified', 1;
 	end
 
 	if @overwriteExisting is null
@@ -345,15 +345,23 @@ go
 
 /* Add a proc to execute a task */
 create or alter procedure scheduler.ExecuteTask
-	@taskId int
+	@taskId int = null
+	,@identifier nvarchar(128) = null
 as
 begin
 	set xact_abort on;
 	set nocount on;
 
+	if (@taskId is null and @identifier is null) or (@taskId is not null and @identifier is not null)
+	begin
+		;throw 50000, 'Only one of @taskId or @identifier must be specified', 1;
+	end
+
 	if @taskId is null
 	begin
-		;throw 50000, '@taskId must be specified', 1;
+		select @taskId = t.TaskId
+		from scheduler.Task as t
+		where t.Identifier = @identifier;
 	end
 
 	if not exists (
