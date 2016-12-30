@@ -14,6 +14,7 @@ create or alter procedure scheduler.CreateAgentJob
 	,@startTime time
 	,@notifyOperator nvarchar(128)
 	,@overwriteExisting bit = 0
+	,@description nvarchar(max) = null
 as
 begin
 	set xact_abort on;
@@ -22,6 +23,7 @@ begin
 	declare @FREQUENCY_DAY varchar(6) = 'day'
 		,@FREQUENCY_HOUR varchar(6) = 'hour'
 		,@FREQUENCY_MINUTE varchar(6) = 'minute'
+		,@FREQUENCY_SECOND varchar(6) = 'second'
 		,@ACTIVE_START_DATE int = 20160101;
 
 	/* Validate parameters for basic correctness */
@@ -56,9 +58,9 @@ begin
 	end
 
 	/* Extended validation */
-	if @frequencyType not in (@FREQUENCY_DAY, @FREQUENCY_HOUR, @FREQUENCY_MINUTE)
+	if @frequencyType not in (@FREQUENCY_DAY, @FREQUENCY_HOUR, @FREQUENCY_MINUTE, @FREQUENCY_SECOND)
 	begin
-		;throw 50000, '@frequencyType must be one of: day, hour, minute',1;
+		;throw 50000, '@frequencyType must be one of: day, hour, minute, second',1;
 	end
 
 	if @frequencyType = @FREQUENCY_DAY and @frequencyInterval <> 0
@@ -78,7 +80,12 @@ begin
 
 	if @frequencyType = @FREQUENCY_MINUTE and not @frequencyInterval between 1 and 3599
 	begin
-		;throw 50000, 'Minute frequency requires an interval between 1 and 3599', 1;
+		;throw 50000, 'Minute frequency requires an interval between 1 and 3599 (1 minute to 1 day)', 1;
+	end
+
+	if @frequencyType = @FREQUENCY_SECOND and not @frequencyInterval between 1 and 3599
+	begin
+		;throw 50000, 'Second frequency requires an interval between 1 and 3599 (1 second to 1 hour)', 1;
 	end
 
 	/* Validate job does not already exist (if overwrite is not specified)
@@ -123,13 +130,28 @@ begin
 			- Set owner to SA
 			- Disable logging of failure to the windows event log
 			- Set failure notification on email
+			- Add audit information to description
 		*/
 
-		EXEC  msdb.dbo.sp_add_job @job_name=@jobName, 
-				@notify_level_eventlog=0, 
-				@notify_level_email=2, 
-				@owner_login_name=N'sa', 
-				@notify_email_operator_name=@notifyOperator;
+		declare @currentUser nvarchar(128) = suser_name()
+				,@currentHost nvarchar(128) = host_name()
+				,@currentApplication nvarchar(128) = app_name()
+				,@currentDate nvarchar(128) = convert(nvarchar(128),getutcdate(), 20)
+				,@crlf char(2) = char(13) + char(10);
+
+		declare @jobDescription nvarchar(max) = formatmessage('Created with CreateAgentJob%sUser:%s%sHost:%s%sApplication:%s%sTime:%s', @crlf, @currentUser, @crlf, @currentHost, @crlf, @currentApplication, @crlf, @currentDate);
+		if @description is not null
+		begin
+			set @jobDescription = @jobDescription + @crlf + 'Info:' + @description
+		end
+
+		EXEC  msdb.dbo.sp_add_job 
+				@job_name=@jobName
+				,@notify_level_eventlog=0
+				,@notify_level_email=2
+				,@owner_login_name=N'sa'
+				,@notify_email_operator_name=@notifyOperator
+				,@description = @jobDescription;
 
 
 		/* Add a job server (specifies this job should execute on this server) */
@@ -142,7 +164,6 @@ begin
 				,@subsystem=N'TSQL'
 				,@command=@command
 				,@database_name=N'master';
-		
 
 		/* Add a schedule with the same name as the job 
 			sp_add_jobschedule: https://msdn.microsoft.com/en-gb/library/ms187320.aspx
@@ -154,7 +175,7 @@ begin
 
 		set @freq_subday_type = case @frequencyType
 									when @FREQUENCY_DAY then 1
-									when 'second' then 2 /* NYI: Seconds */
+									when @FREQUENCY_SECOND then 2
 									when @FREQUENCY_HOUR then 8
 									when @FREQUENCY_MINUTE then 4
 								end;
@@ -246,15 +267,16 @@ begin
 		;throw 50000, 'Specified Task does not exist', 1;
 	end
 
-	
-	
 	declare @jobName nvarchar(128)
 			,@command nvarchar(max)
-			,@frequencyType varchar(5)
+			,@frequencyType varchar(6)
 			,@frequencyInterval tinyint
 			,@startTime time
-			,@notifyOperator nvarchar(128);
+			,@notifyOperator nvarchar(128)
+			,@description nvarchar(max);
 
+	set @description = 'Created from task ' + cast(@taskId as varchar(12));
+	
 	select	@jobName = t.Identifier
 			,@command = t.TSQLCommand
 			,@frequencyType = t.FrequencyTypeDesc
@@ -271,6 +293,7 @@ begin
 			,@frequencyInterval = @frequencyInterval
 			,@startTime = @startTime
 			,@notifyOperator = @notifyOperator
-			,@overwriteExisting = @overwriteExisting;
+			,@overwriteExisting = @overwriteExisting
+			,@description = @description;
 end
 go
