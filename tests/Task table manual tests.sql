@@ -44,3 +44,7 @@ go
 update scheduler.task set FrequencyType = 3, FrequencyInterval = 10 where Identifier = 'test job 2';
 select * from scheduler.task
 exec scheduler.CreateJobFromTask @identifier = 'test job 2', @overwriteExisting = 1;
+go
+/* Add print step to produce output and allow testing execution framework (did the ExecuteTask proc execute?) */
+update scheduler.task set TSQLCommand = 'print ''hi from job''' where Identifier = 'test job 2';
+exec scheduler.CreateJobFromTask @identifier = 'test job 2', @overwriteExisting = 1;
