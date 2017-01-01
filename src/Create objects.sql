@@ -225,6 +225,7 @@ create table scheduler.Task
 	,IsNotifyOnFailure bit not null constraint DF_Task_IsNotifyOnFailure default (1)
 	,IsEnabled bit not null constraint DF_Task_IsEnabled default (1)
 	,AvailabilityGroup nvarchar(128) null
+	,IsJobUpsertRequired bit not null constraint DF_Task_IsJobUpserRequired default (1)
 	,SysStartTime datetime2 generated always as row start not null
 	,SysEndTime datetime2 generated always as row end not null
 	,period for system_time (SysStartTime, SysEndTime)
@@ -314,15 +315,21 @@ as
 begin
 	declare @role nvarchar(60);
 
+	if @availabilityGroupName = N'ALWAYS_PRIMARY'
+	begin
+		return N'PRIMARY';
+	end
+	else if @availabilityGroupName = N'NEVER_PRIMARY'
+	begin
+		return N'SECONDARY';
+	end
+
 	select		@role = ars.role_desc
 	from		sys.dm_hadr_availability_replica_states ars
 	inner join	sys.availability_groups ag
 	on			ars.group_id = ag.group_id
 	where		ag.name = @availabilityGroupName
 	and			ars.is_local = 1;
-
-	/* Test overrides */
-	/* set @role = 'PRIMARY' */
 
 	return coalesce(@role,'');
 end
@@ -427,6 +434,53 @@ begin
 	if @isError = 1 and @isNotifyOnFailure = 1
 	begin
 		;throw 50000, @resultMessage, 1;
+	end
+end
+go
+
+/* Procedure to create jobs from all tasks present in the Task table */
+create or alter procedure scheduler.UpsertJobsForAllTasks
+as
+begin
+	set xact_abort on;
+	set nocount on;
+
+	declare @id int
+			,@maxId int
+			,@taskId int
+			,@autoCreateJobIdentifier nvarchar(128);
+
+	set @autoCreateJobIdentifier = db_name() + N'-UpsertJobsForAllTasks';
+
+	drop table if exists #work;
+
+	select	identity(int,1,1) as Id
+			,cast(t.TaskId as int) as TaskId
+	into #work
+	from scheduler.Task as t
+	where t.IsJobUpsertRequired = 1
+	and t.Identifier <> @autoCreateJobIdentifier;
+
+	set @maxId = SCOPE_IDENTITY();
+	set @id = 1;
+
+	while @id <= @maxId
+	begin
+		select @taskId = w.TaskId
+		from #work as w
+		where w.Id = @id;
+		
+		begin try
+			exec scheduler.CreateJobFromTask @taskId = @taskId, @overwriteExisting = 1;
+			
+			update scheduler.Task
+				set IsJobUpsertRequired = 0
+			where TaskId = @taskId;
+		end try
+		begin catch
+			/* Swallow error - we don't want to take out the whole run if a single task fails to create */
+		end catch
+		set @id += 1;
 	end
 end
 go
