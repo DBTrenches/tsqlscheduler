@@ -314,15 +314,21 @@ as
 begin
 	declare @role nvarchar(60);
 
+	if @availabilityGroupName = N'ALWAYS_PRIMARY'
+	begin
+		return N'PRIMARY';
+	end
+	else if @availabilityGroupName = N'NEVER_PRIMARY'
+	begin
+		return N'SECONDARY';
+	end
+
 	select		@role = ars.role_desc
 	from		sys.dm_hadr_availability_replica_states ars
 	inner join	sys.availability_groups ag
 	on			ars.group_id = ag.group_id
 	where		ag.name = @availabilityGroupName
 	and			ars.is_local = 1;
-
-	/* Test overrides */
-	/* set @role = 'PRIMARY' */
 
 	return coalesce(@role,'');
 end
@@ -427,6 +433,44 @@ begin
 	if @isError = 1 and @isNotifyOnFailure = 1
 	begin
 		;throw 50000, @resultMessage, 1;
+	end
+end
+go
+
+/* Procedure to create jobs from all tasks present in the Task table */
+create or alter procedure scheduler.CreateJobsForAllTasks
+as
+begin
+	set xact_abort on;
+	set nocount on;
+
+	declare @id int
+			,@maxId int
+			,@taskId int;
+
+	drop table if exists #work;
+
+	select	identity(int,1,1) as Id
+			,cast(t.TaskId as int) as TaskId
+	into #work
+	from scheduler.Task as t;
+
+	set @maxId = SCOPE_IDENTITY();
+	set @id = 1;
+
+	while @id <= @maxId
+	begin
+		select @taskId = w.TaskId
+		from #work as w
+		where w.Id = @id;
+		
+		begin try
+			exec scheduler.CreateJobFromTask @taskId = @taskId, @overwriteExisting = 1;
+		end try
+		begin catch
+			/* Swallow error - we don't want to take out the whole run if a single task fails to create */
+		end catch
+		set @id += 1;
 	end
 end
 go
