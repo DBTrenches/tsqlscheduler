@@ -225,6 +225,7 @@ create table scheduler.Task
 	,IsNotifyOnFailure bit not null constraint DF_Task_IsNotifyOnFailure default (1)
 	,IsEnabled bit not null constraint DF_Task_IsEnabled default (1)
 	,AvailabilityGroup nvarchar(128) null
+	,IsJobUpsertRequired bit not null constraint DF_Task_IsJobUpserRequired default (1)
 	,SysStartTime datetime2 generated always as row start not null
 	,SysEndTime datetime2 generated always as row end not null
 	,period for system_time (SysStartTime, SysEndTime)
@@ -453,7 +454,8 @@ begin
 	select	identity(int,1,1) as Id
 			,cast(t.TaskId as int) as TaskId
 	into #work
-	from scheduler.Task as t;
+	from scheduler.Task as t
+	where t.IsJobUpsertRequired = 1;
 
 	set @maxId = SCOPE_IDENTITY();
 	set @id = 1;
@@ -466,6 +468,10 @@ begin
 		
 		begin try
 			exec scheduler.CreateJobFromTask @taskId = @taskId, @overwriteExisting = 1;
+			
+			update scheduler.Task
+				set IsJobUpsertRequired = 0
+			where TaskId = @taskId;
 		end try
 		begin catch
 			/* Swallow error - we don't want to take out the whole run if a single task fails to create */
