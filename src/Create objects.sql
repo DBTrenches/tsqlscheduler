@@ -439,7 +439,7 @@ end
 go
 
 /* Procedure to create jobs from all tasks present in the Task table */
-create or alter procedure scheduler.CreateJobsForAllTasks
+create or alter procedure scheduler.UpsertJobsForAllTasks
 as
 begin
 	set xact_abort on;
@@ -447,7 +447,10 @@ begin
 
 	declare @id int
 			,@maxId int
-			,@taskId int;
+			,@taskId int
+			,@autoCreateJobIdentifier nvarchar(128);
+
+	set @autoCreateJobIdentifier = db_name() + N'-UpsertJobsForAllTasks';
 
 	drop table if exists #work;
 
@@ -455,7 +458,8 @@ begin
 			,cast(t.TaskId as int) as TaskId
 	into #work
 	from scheduler.Task as t
-	where t.IsJobUpsertRequired = 1;
+	where t.IsJobUpsertRequired = 1
+	and t.Identifier <> @autoCreateJobIdentifier;
 
 	set @maxId = SCOPE_IDENTITY();
 	set @id = 1;
