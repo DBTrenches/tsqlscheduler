@@ -1,7 +1,9 @@
 ﻿. .\SQLAgentHelpers.ps1
 
 Describe "Procedure CreateAgentJob" {
-    It "should do something useful" {
-        $true | Should Be $true
+    It "should create a job when the job doesnt exist" {
+        CleanupExistingAgentJob
+	    CreateAgentJob
+	    CheckIfAgentJobExists | Should Be $true
     }
 }
