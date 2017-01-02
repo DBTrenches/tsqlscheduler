@@ -16,7 +16,9 @@ Describe "Procedure CreateAgentJob" {
     It "should update the job when trying to create a job that already exists and overwrite is set" {
         CleanupExistingAgentJob
 	    CreateAgentJob
-        { CreateAgentJob -overwriteExisting 1 } | Should Not Throw
+        { CreateAgentJob -overwriteExisting 1 -command "select 1" } | Should Not Throw
 	    CheckIfAgentJobExists | Should Be $true
+        # Defaults to select @@servername
+        GetAgentJobCommand | Should Be "select 1"
     }
 }
