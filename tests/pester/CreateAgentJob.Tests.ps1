@@ -6,4 +6,17 @@ Describe "Procedure CreateAgentJob" {
 	    CreateAgentJob
 	    CheckIfAgentJobExists | Should Be $true
     }
+
+    It "should throw an error when trying to create a job that already exists and overwrite is not set" {
+        CleanupExistingAgentJob
+	    CreateAgentJob
+        { CreateAgentJob } | Should Throw "Specified job name already exists"
+    }
+
+    It "should update the job when trying to create a job that already exists and overwrite is set" {
+        CleanupExistingAgentJob
+	    CreateAgentJob
+        { CreateAgentJob -overwriteExisting 1 } | Should Not Throw
+	    CheckIfAgentJobExists | Should Be $true
+    }
 }
