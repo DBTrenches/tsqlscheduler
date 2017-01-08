@@ -48,3 +48,12 @@ The Task table holds one row for each task that should be executed in the contex
 The tests are currently hardcoded to point at a database called tsqlscheduler on a local instance.  A successful run looks something like this:
 
 ![Pester Tests](/PesterTests.png?raw=true "Pester Test Results")
+
+## Code Style
+
+- Keywords should be in lowercase
+- Identifiers should not be escaped with brackets unless required (better to avoid using a reserved keyword)
+- Use <> rather than !=
+- Variables use lowerCamelCase
+- Constants in ALL_CAPS
+- Terminate statements with a semicolon
