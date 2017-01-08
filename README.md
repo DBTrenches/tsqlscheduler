@@ -35,7 +35,9 @@ values
 exec scheduler.CreateJobFromTask @identifier = @identifier, @overwriteExisting = 1;
 ```
 
-Only tasks which have the IsJobUpsertRequired bit to 1 will be processed.
+The script uses the temporal table field on the Task table and the jobs last modified date to determine which jobs require modification.
+
+If you set a task to deleted (IsDelete = 1) the process will also remove the agent job associated with that task.
 
 ## How it works
 
