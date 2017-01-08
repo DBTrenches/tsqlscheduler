@@ -1,7 +1,4 @@
 /* Create scheduler schema */
-USE PPCAnalysis
-go
-
 if schema_id('scheduler') is null
 begin
 	exec sp_executesql N'create schema scheduler authorization dbo;';
@@ -11,7 +8,7 @@ go
 /* Create agent job creation proc */
 create or alter procedure scheduler.CreateAgentJob
 	@jobName nvarchar(128)
-	,@Step_Name sysname
+	,@stepName sysname
 	,@command nvarchar(max)
 	,@frequencyType varchar(6)
 	,@frequencyInterval tinyint /* Ignored for day, every N for Hour/Minute */
@@ -149,11 +146,11 @@ begin
 		end
 
 		EXEC  msdb.dbo.sp_add_job 
-				@job_name=@jobName
-				,@notify_level_eventlog=0
-				,@notify_level_email=2
-				,@owner_login_name=N'sa'
-				,@notify_email_operator_name=@notifyOperator
+				@job_name = @jobName
+				,@notify_level_eventlog = 0
+				,@notify_level_email = 2
+				,@owner_login_name = N'sa'
+				,@notify_email_operator_name = @notifyOperator
 				,@description = @jobDescription;
 
 		/* Add a job server (specifies this job should execute on this server) */
@@ -161,11 +158,11 @@ begin
 
 		/* Add the TSQL job step, homed in the master database */
 		EXEC msdb.dbo.sp_add_jobstep 
-				@job_name=@jobName
-				,@step_name=@Step_Name
-				,@subsystem=N'TSQL'
-				,@command=@command
-				,@database_name=N'master';
+				@job_name = @jobName
+				,@step_name= @stepName
+				,@subsystem = N'TSQL'
+				,@command = @command
+				,@database_name = N'master';
 
 		/* Add a schedule with the same name as the job 
 			sp_add_jobschedule: https://msdn.microsoft.com/en-gb/library/ms187320.aspx
@@ -260,8 +257,8 @@ create table scheduler.Task
 	,NotifyOnFailureOperator nvarchar(128) not null
 	,IsNotifyOnFailure bit not null constraint DF_Task_IsNotifyOnFailure default (1)
 	,IsEnabled bit not null constraint DF_Task_IsEnabled default (1)
-	,AvailabilityGroup nvarchar(128) NULL
-    ,IsDeleted BIT CONSTRAINT [DF_IsDeleted] DEFAULT 0
+	,AvailabilityGroup nvarchar(128) null
+    ,IsDeleted bit constraint DF_IsDeleted default (0)
 	,SysStartTime datetime2 generated always as row start not null
 	,SysEndTime datetime2 generated always as row end not NULL
 	,period for system_time (SysStartTime, SysEndTime)
@@ -330,7 +327,7 @@ begin
 
 	exec scheduler.CreateAgentJob
 			@jobName = @jobName
-			,@step_name=@jobName
+			,@stepName = @jobName
 			,@command = @command
 			,@frequencyType = @frequencyType
 			,@frequencyInterval = @frequencyInterval
@@ -374,7 +371,6 @@ begin
 
 	declare @jobName nvarchar(128)
 			
-
 	select	@jobName = t.Identifier
 	from	scheduler.Task as t
 	where	t.TaskId = @taskId;
@@ -474,7 +470,7 @@ begin
 			,@isEnabled = t.IsEnabled
 			,@isNotifyOnFailure = t.IsNotifyOnFailure
 			,@availabilityGroupName = t.AvailabilityGroup
-			,@Identifier=t.Identifier
+			,@identifier = t.Identifier
 
 	from	scheduler.Task as t
 	where	t.TaskId = @taskId;
@@ -483,21 +479,22 @@ begin
 	if @isEnabled = 0
 	begin
 		return;
-	END
+	end
     
-	if @availabilityGroupName is not null and scheduler.GetAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY' AND @Identifier!=@autoCreateJobIdentifier
-	BEGIN
+	if @availabilityGroupName is not null and scheduler.GetAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY' AND @Identifier <> @autoCreateJobIdentifier
+	begin
   		return;
 	end
 
-	IF @Identifier!=@autoCreateJobIdentifier
+	/* Don't log executions for the auto-create job - it'll run on all replicas and logging will fail everywhere but the primary */
+	if @identifier <> @autoCreateJobIdentifier
 	begin
-	insert into scheduler.TaskExecution
-	( TaskId )
-	values
-	( @taskId )
+		insert into scheduler.TaskExecution
+		( TaskId )
+		values
+		( @taskId );
 
-	select @executionId = scope_identity();
+		select @executionId = scope_identity();
 	end
 	declare @errorNumber int
 			,@resultMessage nvarchar(max)
@@ -511,14 +508,16 @@ begin
 		set @errorNumber = error_number();
 		set @resultMessage = cast(@errorNumber as varchar(10)) + ' - ' + error_message();
 	end catch
-	IF @Identifier!=@autoCreateJobIdentifier
+
+	if @identifier <> @autoCreateJobIdentifier
 	begin
-	update scheduler.TaskExecution
-		set IsError = @isError
-			,ResultMessage = @resultMessage
-			,EndDateTime = getutcdate()
-	where ExecutionId = @executionId;
+		update scheduler.TaskExecution
+			set IsError = @isError
+				,ResultMessage = @resultMessage
+				,EndDateTime = getutcdate()
+		where ExecutionId = @executionId;
 	end
+
 	/* Throw here to allow agent to message the failure operator */
 	if @isError = 1 and @isNotifyOnFailure = 1
 	begin
@@ -540,25 +539,27 @@ begin
 			,@autoCreateJobIdentifier nvarchar(128);
 
 	set @autoCreateJobIdentifier = db_name() + N'-UpsertJobsForAllTasks';
+
 	/*Update Existing and Create New Jobs*/
 	drop table if exists #UpdateCreateWork;
-	CREATE TABLE	#UpdateCreateWork
+	create table #UpdateCreateWork
 	(
-	Id	int NOT NULL IDENTITY(1, 1)  PRIMARY KEY,
-	TaskId int NOT null
-	)
-	INSERT INTO		#UpdateCreateWork
+		Id	int not null identity(1, 1) primary key,
+		TaskId int not null
+	);
+
+	insert into		#UpdateCreateWork
 					(TaskId)
 	select			t.TaskId 
 	from			scheduler.Task as t
 	where			t.Identifier <> @autoCreateJobIdentifier
-	AND				t.isdeleted=0
+	AND				t.IsDeleted = 0
 	AND NOT EXISTS (
-					SELECT	* 
-					FROM	msdb.dbo.sysjobs j 
-					WHERE	j.NAME=t.Identifier 
-					AND		j.date_modified>=t.sysStartTime
-					)
+		select	1 
+		from 	msdb.dbo.sysjobs j 
+		where 	j.name = t.Identifier 
+		AND		j.date_modified >= t.sysStartTime
+	);
 
 	set @maxId = SCOPE_IDENTITY();
 	set @id = 1;
@@ -571,31 +572,32 @@ begin
 		
 		begin try
 			exec scheduler.CreateJobFromTask @taskId = @taskId, @overwriteExisting = 1;
-			
 		end try
 		begin catch
 			/* Swallow error - we don't want to take out the whole run if a single task fails to create */
 		end catch
 		set @id += 1;
-	END
-    /*Deleted existing jobs marked for deletion */
+	end
+
+    /* Delete existing jobs marked for deletion */
 	drop table if exists #DeleteWork;
-	CREATE TABLE	#DeleteWork
+	create table #DeleteWork
 	(
-	Id	int NOT NULL IDENTITY(1, 1)  PRIMARY KEY,
-	TaskId int NOT null
-	)
-	INSERT INTO		#DeleteWork
+		Id	int not null identity(1, 1) primary key,
+		TaskId int not null
+	);
+
+	insert into		#DeleteWork
 					(TaskId)
 	select			t.TaskId 
 	from			scheduler.Task as t
 	where			t.Identifier <> @autoCreateJobIdentifier
-	AND				t.isdeleted=1
-	AND		EXISTS (
-					SELECT	* 
-					FROM	msdb.dbo.sysjobs j 
-					WHERE	j.NAME=t.Identifier 
-					)
+	and				t.IsDeleted = 1
+	and exists		(
+		select	1 
+		from	msdb.dbo.sysjobs j 
+		where	j.name = t.Identifier 
+	);
 
 	set @maxId = SCOPE_IDENTITY();
 	set @id = 1;
@@ -608,7 +610,6 @@ begin
 		
 		begin try
 			exec scheduler.RemoveJobFromTask @taskId = @taskId;
-			
 		end try
 		begin catch
 			/* Swallow error - we don't want to take out the whole run if a single task fails to create */
