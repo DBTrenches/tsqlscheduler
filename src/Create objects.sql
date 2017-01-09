@@ -125,7 +125,6 @@ begin
 		
 		/* MSDN docs for job creation: https://msdn.microsoft.com/en-gb/library/ms187320.aspx */
 
-		/* Convert start time into msdb format */
 		/* Create the job 
 			- Set owner to SA
 			- Disable logging of failure to the windows event log
@@ -140,12 +139,13 @@ begin
 				,@crlf char(2) = char(13) + char(10);
 
 		declare @jobDescription nvarchar(max) = formatmessage('Created with CreateAgentJob%sUser:%s%sHost:%s%sApplication:%s%sTime:%s', @crlf, @currentUser, @crlf, @currentHost, @crlf, @currentApplication, @crlf, @currentDate);
+
 		if @description is not null
 		begin
 			set @jobDescription = @jobDescription + @crlf + 'Info:' + @description
 		end
 
-		EXEC  msdb.dbo.sp_add_job 
+		exec  msdb.dbo.sp_add_job 
 				@job_name = @jobName
 				,@notify_level_eventlog = 0
 				,@notify_level_email = 2
@@ -179,9 +179,10 @@ begin
 									when @FREQUENCY_MINUTE then 4
 								end;
 		
+		/* Convert start time into msdb format */
 		set @active_start_time = (datepart(hour,@startTime) * 10000) + (datepart(minute, @startTime) * 100) + datepart(second, @startTime);
 		
-		EXEC msdb.dbo.sp_add_jobschedule 
+		exec msdb.dbo.sp_add_jobschedule 
 				@job_name=@jobName
 				,@name=@jobName
 				,@freq_type=4	/* Daily */
@@ -220,14 +221,11 @@ begin
 	if @existingJobId is null 
 	begin
 		;throw 50000, 'Specified job name does not exists', 1;
-		RETURN;
+		return;
 	end
 
-
 	/* Delete Job*/
-	
 	exec msdb.dbo.sp_delete_job @job_id = @existingJobId;
-
 end
 go
 /* Create table to store task details */
@@ -363,7 +361,7 @@ begin
 		select 1
 		from scheduler.Task as t
 		where t.TaskId = @taskId
-		AND t.Isdeleted=1
+		and t.Isdeleted=1
 	)
 	begin
 		;throw 50000, 'Specified task does not exists or it has not been marked for deletion ', 1;
@@ -376,7 +374,7 @@ begin
 	where	t.TaskId = @taskId;
 	
 	exec scheduler.DeleteAgentJob
-			@jobName = @jobName
+			@jobName = @jobName;
 			
 end
 go
@@ -464,7 +462,7 @@ begin
 			,@availabilityGroupName nvarchar(128)
 			,@autoCreateJobIdentifier nvarchar(128)
 
-	SET @autoCreateJobIdentifier=db_name() + N'-UpsertJobsForAllTasks';
+	set @autoCreateJobIdentifier=db_name() + N'-UpsertJobsForAllTasks';
 
 	select	@command = t.TSQLCommand
 			,@isEnabled = t.IsEnabled
@@ -553,15 +551,15 @@ begin
 	select			t.TaskId 
 	from			scheduler.Task as t
 	where			t.Identifier <> @autoCreateJobIdentifier
-	AND				t.IsDeleted = 0
-	AND NOT EXISTS (
+	and				t.IsDeleted = 0
+	and not exists (
 		select	1 
 		from 	msdb.dbo.sysjobs j 
 		where 	j.name = t.Identifier 
-		AND		j.date_modified >= t.sysStartTime
+		and		j.date_modified >= t.sysStartTime
 	);
 
-	set @maxId = SCOPE_IDENTITY();
+	set @maxId = scope_identity();
 	set @id = 1;
 
 	while @id <= @maxId
@@ -599,7 +597,7 @@ begin
 		where	j.name = t.Identifier 
 	);
 
-	set @maxId = SCOPE_IDENTITY();
+	set @maxId = scope_identity();
 	set @id = 1;
 
 	while @id <= @maxId
