@@ -214,15 +214,30 @@ begin
 	end
 
 	declare @existingJobId uniqueidentifier;
-	select @existingJobId = s.job_id
-	from msdb.dbo.sysjobs as s
-	where s.name = @jobName;
 
-	if @existingJobId is null 
-	begin
-		;throw 50000, 'Specified job name does not exists', 1;
-		return;
-	end
+    declare @schedule_Id int;
+
+    select @existingJobId = s.job_id
+    from msdb.dbo.sysjobs as s
+    where s.name = @jobName;
+       
+    if @existingJobId is null 
+    begin
+          ;throw 50000, 'Specified job name does not exists', 1;
+          RETURN;
+    end
+
+    select @schedule_Id=s.schedule_id 
+    from  msdb.dbo.sysschedules s 
+    join  msdb.dbo.sysjobschedules sj
+    on    s.schedule_id=sj.schedule_id
+	where sj.job_id=@existingJobId
+
+    /* Delete schedule if exists*/
+    IF @schedule_Id is not null
+    begin
+          EXEC msdb.dbo.sp_delete_schedule @schedule_id=@schedule_id, @force_delete = 1
+    end
 
 	/* Delete Job*/
 	exec msdb.dbo.sp_delete_job @job_id = @existingJobId;
@@ -262,6 +277,7 @@ create table scheduler.Task
 	,period for system_time (SysStartTime, SysEndTime)
 	,constraint PK_Task primary key clustered (TaskId) with (data_compression = page)
 	,constraint UQ_Task_Name unique nonclustered (Identifier) with (data_compression = page)
+	,constraint CK_FrequencyInterval CHECK ((FrequencyType=1 AND FrequencyInterval=0) OR (FrequencyType IN (2,3,4) AND FrequencyInterval>0))
 ) with (system_versioning = on (history_table = scheduler.TaskHistory))
 GO
 
@@ -616,8 +632,3 @@ begin
 	END
 end
 GO
-
-
-
-
-
