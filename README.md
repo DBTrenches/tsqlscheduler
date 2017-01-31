@@ -35,7 +35,9 @@ values
 exec scheduler.CreateJobFromTask @identifier = @identifier, @overwriteExisting = 1;
 ```
 
-Only tasks which have the IsJobUpsertRequired bit to 1 will be processed.
+The script uses the temporal table field on the Task table and the jobs last modified date to determine which jobs require modification.
+
+If you set a task to deleted (IsDelete = 1) the process will also remove the agent job associated with that task.
 
 ## How it works
 
@@ -46,3 +48,12 @@ The Task table holds one row for each task that should be executed in the contex
 The tests are currently hardcoded to point at a database called tsqlscheduler on a local instance.  A successful run looks something like this:
 
 ![Pester Tests](/PesterTests.png?raw=true "Pester Test Results")
+
+## Code Style
+
+- Keywords should be in lowercase
+- Identifiers should not be escaped with brackets unless required (better to avoid using a reserved keyword)
+- Use <> rather than !=
+- Variables use lowerCamelCase
+- Constants in ALL_CAPS
+- Terminate statements with a semicolon

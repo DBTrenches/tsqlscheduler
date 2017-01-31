@@ -214,6 +214,7 @@ begin
 	end
 
 	declare @existingJobId uniqueidentifier;
+
     declare @schedule_Id int;
 
     select @existingJobId = s.job_id
