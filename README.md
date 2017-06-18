@@ -11,9 +11,11 @@ This is intended as an administrative tool and as such requires and will schedul
 
 ## Installation
 
-Run the script src/Create Objects.sql in the target database.  This will create all necessary objects, dropping any that already exist.  The objects will all be created in the scheduler schema.
+Run the powershell script (DeployAllObjects.ps1), updating the target server as required.  This will create all the objects in the scheduler schema.  Alternatively, you can execute the individual scripts against the target server (also in the src folder).
 
 The script requires SQL 2016 SP1.
+
+The objects can be removed with the RemoveAllObjects SQL script.
 
 ## Usage
 
