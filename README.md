@@ -11,7 +11,14 @@ This is intended as an administrative tool and as such requires and will schedul
 
 ## Installation
 
-Run the powershell script (DeployAllObjects.ps1), updating the target server as required.  This will create all the objects in the scheduler schema.  Alternatively, you can execute the individual scripts against the target server (also in the src folder).
+Clone the repository and . source the DeployAllObjects.ps1 script file.  After that execute the Deploy-SchedulerSolution.  It assumes integrated security - if you need a username and password you need to edit the deployment powershell, or execute the scripts manually.  The solution will be deployed into the scheduler schema.
+
+```
+. ./src/DeployAllObjects.ps1
+Deploy-SchedulerSolution -Server localhost -Database tsqlscheduler -agMode $false
+```
+
+If you're deploying to an AG database specify agMode as true.   If you're deploying scheduler for the whole instance use standalone mode (agMode false).
 
 The script requires SQL 2016 SP1.
 
