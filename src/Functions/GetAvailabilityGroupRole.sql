@@ -7,15 +7,6 @@ as
 begin
 	declare @role nvarchar(60);
 
-	if @availabilityGroupName = N'ALWAYS_PRIMARY'
-	begin
-		return N'PRIMARY';
-	end
-	else if @availabilityGroupName = N'NEVER_PRIMARY'
-	begin
-		return N'SECONDARY';
-	end
-
 	select		@role = ars.role_desc
 	from		sys.dm_hadr_availability_replica_states ars
 	inner join	sys.availability_groups ag
