@@ -31,10 +31,7 @@ begin
 			,@command nvarchar(max)
 			,@isEnabled bit
 			,@isNotifyOnFailure bit
-			,@availabilityGroupName nvarchar(128)
-			,@autoCreateJobIdentifier nvarchar(128)
-
-	set @autoCreateJobIdentifier=db_name() + N'-UpsertJobsForAllTasks';
+			,@availabilityGroupName nvarchar(128);
 
 	select	@command = t.TSQLCommand
 			,@isEnabled = t.IsEnabled
@@ -51,21 +48,18 @@ begin
 		return;
 	end
     
-	if @availabilityGroupName is not null and scheduler.GetAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY' AND @Identifier <> @autoCreateJobIdentifier
+	if @availabilityGroupName is not null and scheduler.GetAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY'
 	begin
   		return;
 	end
 
-	/* Don't log executions for the auto-create job - it'll run on all replicas and logging will fail everywhere but the primary */
-	if @identifier <> @autoCreateJobIdentifier
-	begin
-		insert into scheduler.TaskExecution
-		( TaskId )
-		values
-		( @taskId );
+	insert into scheduler.TaskExecution
+	( TaskId )
+	values
+	( @taskId );
 
-		select @executionId = scope_identity();
-	end
+	select @executionId = scope_identity();
+
 	declare @errorNumber int
 			,@resultMessage nvarchar(max)
 			,@isError bit = 0;
@@ -79,14 +73,11 @@ begin
 		set @resultMessage = cast(@errorNumber as varchar(10)) + ' - ' + error_message();
 	end catch
 
-	if @identifier <> @autoCreateJobIdentifier
-	begin
-		update scheduler.TaskExecution
-			set IsError = @isError
-				,ResultMessage = @resultMessage
-				,EndDateTime = getutcdate()
-		where ExecutionId = @executionId;
-	end
+	update scheduler.TaskExecution
+		set IsError = @isError
+			,ResultMessage = @resultMessage
+			,EndDateTime = getutcdate()
+	where ExecutionId = @executionId;
 
 	/* Throw here to allow agent to message the failure operator */
 	if @isError = 1 and @isNotifyOnFailure = 1

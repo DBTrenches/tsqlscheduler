@@ -6,10 +6,7 @@ begin
 
 	declare @id int
 			,@maxId int
-			,@taskId int
-			,@autoCreateJobIdentifier nvarchar(128);
-
-	set @autoCreateJobIdentifier = db_name() + N'-UpsertJobsForAllTasks';
+			,@taskId int;
 
 	/*Update Existing and Create New Jobs*/
 	drop table if exists #UpdateCreateWork;
@@ -23,8 +20,7 @@ begin
 					(TaskId)
 	select			t.TaskId 
 	from			scheduler.Task as t
-	where			t.Identifier <> @autoCreateJobIdentifier
-	and				t.IsDeleted = 0
+	where			t.IsDeleted = 0
 	and not exists (
 		select	1 
 		from 	msdb.dbo.sysjobs j 
@@ -62,8 +58,7 @@ begin
 					(TaskId)
 	select			t.TaskId 
 	from			scheduler.Task as t
-	where			t.Identifier <> @autoCreateJobIdentifier
-	and				t.IsDeleted = 1
+	where			t.IsDeleted = 1
 	and exists		(
 		select	1 
 		from	msdb.dbo.sysjobs j 
