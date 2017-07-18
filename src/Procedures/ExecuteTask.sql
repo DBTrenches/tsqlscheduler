@@ -71,6 +71,11 @@ begin
 		set @isError = 1;
 		set @errorNumber = error_number();
 		set @resultMessage = cast(@errorNumber as varchar(10)) + ' - ' + error_message();
+
+		if xact_state() in (-1,1)
+		begin
+			rollback transaction;
+		end
 	end catch
 
 	update scheduler.TaskExecution
