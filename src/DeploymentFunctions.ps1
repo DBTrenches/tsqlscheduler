@@ -1,10 +1,13 @@
-Function Deploy-SchedulerSolution (
-    $server = "localhost"
-    ,$database = "tsqlscheduler"
-    # False = AG deployment
-    ,$agMode = $false 
-)
+Function Deploy-SchedulerSolution 
 {
+    [cmdletbinding()]
+    Param (
+        $server = "localhost"
+        ,$database = "tsqlscheduler"
+        # False = AG deployment
+        ,$agMode = $false 
+    )
+
     $files = @('./Schema/scheduler.sql')
 
     if($agMode) {
@@ -14,6 +17,7 @@ Function Deploy-SchedulerSolution (
     }
     $files += './Tables/TaskExecution.sql'
     $files += './Functions/GetAvailabilityGroupRole.sql'
+    $files += './Procedures/SetContextInfo.sql'
     $files += './Procedures/CreateAgentJob.sql'
     $files += './Procedures/CreateJobFromTask.sql'
     $files += './Procedures/DeleteAgentJob.sql'
@@ -21,7 +25,10 @@ Function Deploy-SchedulerSolution (
     $files += './Procedures/RemoveJobFromTask.sql'
     $files += './Procedures/UpsertJobsForAllTasks.sql'
 
-    $files | foreach-object { Invoke-SqlCmd -ServerInstance $server -Database $database -InputFile $_ }
+    $files | foreach-object { 
+        Write-Verbose $_
+        Invoke-SqlCmd -ServerInstance $server -Database $database -InputFile $_ 
+    }
 
     $instanceGuid = [System.Guid]::NewGuid().ToString()
     $instanceFunction = @"
