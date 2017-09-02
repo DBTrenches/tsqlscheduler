@@ -62,7 +62,16 @@ begin
 
 	declare @errorNumber int
 			,@resultMessage nvarchar(max)
-			,@isError bit = 0;
+			,@isError bit = 0
+			,@id uniqueidentifier;
+
+	select @id = i.Id
+	from scheduler.GetInstanceId();
+
+	exec scheduler.SetContextInfo
+		@identifier = @id
+		,@taskId = @taskId
+		,@executionId = @executionId;
 
 	begin try
 		exec sp_executesql @command;
