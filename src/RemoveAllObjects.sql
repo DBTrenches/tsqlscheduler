@@ -6,6 +6,7 @@ drop procedure if exists scheduler.DeleteAgentJob;
 drop procedure if exists scheduler.ExecuteTask;
 drop procedure if exists scheduler.RemoveJobFromTask;
 drop procedure if exists scheduler.UpsertJobsForAllTasks;
+drop procedure if exists scheduler.SetContextInfo;
 go
 
 /*** FUNCTIONS ***/
@@ -13,6 +14,9 @@ go
 drop function if exists scheduler.GetAvailabilityGroupRole;
 drop function if exists scheduler.GetInstanceId;
 go
+
+/*** VIEWS ***/
+drop view if exists scheduler.CurrentlyExecutingTasks;
 
 /*** TABLES ***/
 
