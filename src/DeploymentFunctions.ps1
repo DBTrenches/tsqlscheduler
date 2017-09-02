@@ -22,6 +22,18 @@ Function Deploy-SchedulerSolution (
     $files += './Procedures/UpsertJobsForAllTasks.sql'
 
     $files | foreach-object { Invoke-SqlCmd -ServerInstance $server -Database $database -InputFile $_ }
+
+    $instanceGuid = [System.Guid]::NewGuid().ToString()
+    $instanceFunction = @"
+    create or alter function scheduler.GetInstanceId()
+    returns table
+    as
+    return (
+        select cast('$instanceGuid' as uniqueidentifier) as Id
+    );
+"@
+
+    Invoke-SqlCmd -ServerInstance $server -Database $database -Query $instanceFunction
 }
 
 Function Deploy-AutoUpsertJob (

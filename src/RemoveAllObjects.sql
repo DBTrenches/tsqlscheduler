@@ -11,6 +11,7 @@ go
 /*** FUNCTIONS ***/
 
 drop function if exists scheduler.GetAvailabilityGroupRole;
+drop function if exists scheduler.GetInstanceId;
 go
 
 /*** TABLES ***/
