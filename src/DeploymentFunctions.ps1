@@ -1,4 +1,4 @@
-Function Deploy-SchedulerSolution 
+Function Install-SchedulerSolution 
 {
     [cmdletbinding()]
     Param (
@@ -17,6 +17,7 @@ Function Deploy-SchedulerSolution
     }
     $files += './Tables/TaskExecution.sql'
     $files += './Functions/GetAvailabilityGroupRole.sql'
+    $files += './Functions/GetVersion.sql'
     $files += './Procedures/SetContextInfo.sql'
     $files += './Procedures/CreateAgentJob.sql'
     $files += './Procedures/CreateJobFromTask.sql'
@@ -44,7 +45,7 @@ Function Deploy-SchedulerSolution
     Invoke-SqlCmd -ServerInstance $server -Database $database -Query $instanceFunction
 }
 
-Function Deploy-AutoUpsertJob (
+Function Install-AutoUpsertJob (
         $Server = "localhost"
         ,$Database = "tsqlscheduler"
         ,$TargetDatabase = "tsqlscheduler"

@@ -13,6 +13,7 @@ go
 
 drop function if exists scheduler.GetAvailabilityGroupRole;
 drop function if exists scheduler.GetInstanceId;
+drop function if exists scheduler.GetVersion;
 go
 
 /*** VIEWS ***/

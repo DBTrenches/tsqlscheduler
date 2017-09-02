@@ -23,15 +23,15 @@ This is intended as an administrative tool and as such requires and will schedul
 . ./src/DeploymentFunctions.ps1
 
 # Deploy once in AG mode
-Deploy-SchedulerSolution -Server primaryNode -Database agDatabase -agMode $true
+Install-SchedulerSolution -Server primaryNode -Database agDatabase -agMode $true
 
 # Deploy once potential primary per-node in standalone mode (needed once per node only, not once per AG)
-Deploy-SchedulerSolution -Server primaryNode -Database Utility -agMode $false
-Deploy-SchedulerSolution -Server secondaryNode -Database Utility -agMode $false
+Install-SchedulerSolution -Server primaryNode -Database Utility -agMode $false
+Install-SchedulerSolution -Server secondaryNode -Database Utility -agMode $false
 
 # Create the job on every node that can host the primary
-Deploy-AutoUpsertJob -Server primaryNode -Database Utility -TargetDatabase agDatabase -NotifyOperator "Test Operator"
-Deploy-AutoUpsertJob -Server secondaryNode -Database Utility -TargetDatabase agDatabase -NotifyOperator "Test Operator"
+Install-AutoUpsertJob -Server primaryNode -Database Utility -TargetDatabase agDatabase -NotifyOperator "Test Operator"
+Install-AutoUpsertJob -Server secondaryNode -Database Utility -TargetDatabase agDatabase -NotifyOperator "Test Operator"
 ```
 
 If the instance hosted multiple availability groups, the Utility database would need to contain one AutoUpsert task for every AG.
@@ -39,8 +39,8 @@ If the instance hosted multiple availability groups, the Utility database would 
 If the Utility database on each instance was also going to be used to schedule instance tasks (rather than just the tasks in agDatabase) an additional pair of tasks would be required:
 
 ```powershell
-Deploy-AutoUpsertJob -Server primaryNode -Database Utility -TargetDatabase Utility -NotifyOperator "Test Operator"
-Deploy-AutoUpsertJob -Server secondaryNode -Database Utility -TargetDatabase Utility -NotifyOperator "Test Operator"
+Install-AutoUpsertJob -Server primaryNode -Database Utility -TargetDatabase Utility -NotifyOperator "Test Operator"
+Install-AutoUpsertJob -Server secondaryNode -Database Utility -TargetDatabase Utility -NotifyOperator "Test Operator"
 ```
 
 #### Auto-create jobs in AG deployments - walkthrough
@@ -71,8 +71,8 @@ Key here is that the two standalone deployments will both periodically call into
 . ./src/DeploymentFunctions.ps1
 
 # Deploy in standalone mode
-Deploy-SchedulerSolution -Server primaryNode -Database Utility -agMode $false
-Deploy-AutoUpsertJob -Server primaryNode -Database Utility -TargetDatabase Utility -NotifyOperator "Test Operator"
+Install-SchedulerSolution -Server primaryNode -Database Utility -agMode $false
+Install-AutoUpsertJob -Server primaryNode -Database Utility -TargetDatabase Utility -NotifyOperator "Test Operator"
 ```
 
 ### Notes
