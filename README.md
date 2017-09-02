@@ -133,9 +133,34 @@ You can monitor executions via the scheduler.TaskExecution table.
 
 Task configuration history is available in the scheduler.TaskHistory table, or by querying the scheduler.Task table with a temporal query.
 
+You can view currently running tasks by querying the **scheduler.CurrentlyExecutingTasks** view.  The SQL below will show all executing tasks as well as their last runtime & result.
+
+```sql
+select	te.StartDateTime
+		,datediff(second,te.StartDateTime, getutcdate()) as DurationSeconds
+		,t.Identifier
+		,lastResult.StartDateTime as LastStartTime
+		,datediff(second,lastResult.StartDateTime, lastResult.EndDateTime) as LastDurationSeconds
+		,lastResult.IsError as LastIsError
+from	scheduler.CurrentlyExecutingTasks as cet
+join	scheduler.Task as t
+on		t.TaskId = cet.TaskId
+join	scheduler.TaskExecution as te
+on		te.ExecutionId = cet.ExecutionId
+outer apply (
+	select top 1 *
+	from scheduler.TaskExecution as teh
+	where teh.TaskId = t.TaskId
+	and teh.ExecutionId <> te.ExecutionId
+	order by ExecutionId desc
+) as lastResult
+```
+
 ## How it works
 
 The Task table holds one row for each task that should be executed in the context of that database.  When an agent job is created from this task a job is created as a wrapper around the scheduler.ExecuteTask stored procedure.  This procedure uses the metadata from the Task table to execute the TSQLCommand with sp_executesql.
+
+Before the task is executed the Id of the instance, task, and execution are stored in the context_info object, which allows the task to be tracked.
 
 The auto-upsert logic uses the temporal table field (SysStartTime) on the Task table, and the agent job's last modified date, to determine which jobs require modification.
 

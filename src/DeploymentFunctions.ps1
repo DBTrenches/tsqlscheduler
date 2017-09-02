@@ -24,6 +24,7 @@ Function Deploy-SchedulerSolution
     $files += './Procedures/ExecuteTask.sql'
     $files += './Procedures/RemoveJobFromTask.sql'
     $files += './Procedures/UpsertJobsForAllTasks.sql'
+    $files += './Views/CurrentlyExecutingTasks.sql'
 
     $files | foreach-object { 
         Write-Verbose $_
