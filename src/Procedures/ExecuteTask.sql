@@ -69,7 +69,7 @@ begin
 	from scheduler.GetInstanceId() as i;
 
 	exec scheduler.SetContextInfo
-		@identifier = @id
+		@instanceIdentifier = @id
 		,@taskId = @taskId
 		,@executionId = @executionId;
 
