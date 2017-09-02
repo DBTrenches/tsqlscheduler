@@ -5,7 +5,7 @@ create or alter procedure scheduler.SetContextInfo
 as
 begin
     declare @descriptor varchar(128) = 
-	    '{ "i":"' + cast(@instanceId as varchar(36)) 
+	    '{ "i":"' + cast(@instanceIdentifier as varchar(36)) 
 	    + '","t":' + cast(@taskId as varchar(12)) 
 	    + ',"e":' + cast(@executionId as varchar(12)) 
 	    + '}';

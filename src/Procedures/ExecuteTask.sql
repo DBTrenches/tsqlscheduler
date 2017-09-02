@@ -66,7 +66,7 @@ begin
 			,@id uniqueidentifier;
 
 	select @id = i.Id
-	from scheduler.GetInstanceId();
+	from scheduler.GetInstanceId() as i;
 
 	exec scheduler.SetContextInfo
 		@identifier = @id
