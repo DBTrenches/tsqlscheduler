@@ -143,6 +143,8 @@ select	te.StartDateTime
 		,datediff(second,lastResult.StartDateTime, lastResult.EndDateTime) as LastDurationSeconds
 		,lastResult.IsError as LastIsError
 from	scheduler.CurrentlyExecutingTasks as cet
+join    scheduler.GetInstanceId() as id
+on      cet.Instanceid = id.Id
 join	scheduler.Task as t
 on		t.TaskId = cet.TaskId
 join	scheduler.TaskExecution as te
