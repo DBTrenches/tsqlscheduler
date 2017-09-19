@@ -11,6 +11,7 @@ create table scheduler.Task
 	,IsNotifyOnFailure bit not null constraint DF_Task_IsNotifyOnFailure default (1)
 	,IsEnabled bit not null constraint DF_Task_IsEnabled default (1)
 	,AvailabilityGroup as cast(null as nvarchar(128))
+	,IsCachedRoleCheck as cast(null as bit)
     ,IsDeleted bit constraint DF_IsDeleted default (0)
 	,SysStartTime datetime2 generated always as row start not null
 	,SysEndTime datetime2 generated always as row end not NULL

@@ -31,13 +31,15 @@ begin
 			,@command nvarchar(max)
 			,@isEnabled bit
 			,@isNotifyOnFailure bit
-			,@availabilityGroupName nvarchar(128);
+			,@availabilityGroupName nvarchar(128)
+			,@isCachedRoleCheck bit;
 
 	select	@command = t.TSQLCommand
 			,@isEnabled = t.IsEnabled
 			,@isNotifyOnFailure = t.IsNotifyOnFailure
 			,@availabilityGroupName = t.AvailabilityGroup
 			,@identifier = t.Identifier
+			,@isCachedRoleCheck = t.IsCachedRoleCheck
 
 	from	scheduler.Task as t
 	where	t.TaskId = @taskId;
@@ -47,10 +49,18 @@ begin
 	begin
 		return;
 	end
-    
-	if @availabilityGroupName is not null and scheduler.GetAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY'
+
+  	if @availabilityGroupName is not null
 	begin
-  		return;
+		/* Are we requesting a non-cached result? */
+		if @isCachedRoleCheck = 0 and scheduler.GetAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY'
+		begin
+			return;
+		end
+		else if scheduler.GetCachedAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY'
+		begin
+  			return;
+		end
 	end
 
 	insert into scheduler.TaskExecution

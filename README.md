@@ -3,7 +3,7 @@
 Create agent jobs from definitions stored in SQL tables.  Currently supports the following features:
 
 - Schedule tasks to run on a schedule every day, or every N hours/minutes/seconds
-- Automatically create a SQL Agent job from each task
+- Automatically create a SQL Agent job from each task (stored in a Task table)
 - Provide logging of task execution history (runtime, success/failure, error messages)
 - Conditional execution of tasks based on replica status - if an availability group is linked to a task that task will only run when that node is the primary replica
 
@@ -14,10 +14,11 @@ This is intended as an administrative tool and as such requires and will schedul
 ### Availability Group Mode
 
 - Clone the repository and dot source the DeploymentFunctions.ps1 script file
-- Deploy the solution in AG mode against the AG database
-- Deploy the solution in standalone mode against every instance which can host the primary replica
-- Deploy the AutoUpsert task on all nodes which can host the AG.  
-  - The notify operator must exist on the instance or the job will not be created.
+- Deploy the solution in AG mode against a database in the AG
+- Deploy the solution in standalone mode against every instance which can host the primary replica (not in an AG database)
+- Deploy the AutoUpsert task on all nodes which can host the AG
+  - The notify operator must exist on the instance or the job will not be created
+- Deploy the UpdateReplicaStatus job against the AG solution
 
 ```powershell
 . ./src/DeploymentFunctions.ps1
@@ -32,9 +33,12 @@ Install-SchedulerSolution -Server secondaryNode -Database Utility -agMode $false
 # Create the job on every node that can host the primary
 Install-AutoUpsertJob -Server primaryNode -Database Utility -TargetDatabase agDatabase -NotifyOperator "Test Operator"
 Install-AutoUpsertJob -Server secondaryNode -Database Utility -TargetDatabase agDatabase -NotifyOperator "Test Operator"
+
+# Create the job that keeps track of the replica status
+Install-ReplicaStatusJob -Server primaryNode -Database agDatabase -AvailabilityGroup AGName -NotifyOperator "Test Operator"
 ```
 
-If the instance hosted multiple availability groups, the Utility database would need to contain one AutoUpsert task for every AG.
+If an instance hosts multiple availability groups, the Utility database would need to contain one AutoUpsert task for every AG.
 
 If the Utility database on each instance was also going to be used to schedule instance tasks (rather than just the tasks in agDatabase) an additional pair of tasks would be required:
 
@@ -167,6 +171,10 @@ Before the task is executed the Id of the instance, task, and execution are stor
 The auto-upsert logic uses the temporal table field (SysStartTime) on the Task table, and the agent job's last modified date, to determine which jobs require modification.
 
 Any task set to deleted (IsDeleted = 1) will have its corresponding agent job deleted by the upsert job.
+
+## Tracking Replica Role (AG Mode)
+
+Rather than query the DMV on every call to ExecuteTask (as was the behaviour in 1.0), a job runs to periodically persist the current status of each node.  This table is then queried by ExecuteTask to see if the task should execute.  This was done to minimise blocking caused when many concurrent tasks query this DMV.
 
 ## Code Style
 

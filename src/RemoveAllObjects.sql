@@ -7,11 +7,13 @@ drop procedure if exists scheduler.ExecuteTask;
 drop procedure if exists scheduler.RemoveJobFromTask;
 drop procedure if exists scheduler.UpsertJobsForAllTasks;
 drop procedure if exists scheduler.SetContextInfo;
+drop procedure if exists scheduler.UpdateReplicaStatus;
 go
 
 /*** FUNCTIONS ***/
 
 drop function if exists scheduler.GetAvailabilityGroupRole;
+drop function if exists scheduler.GetCachedAvailabilityGroupRole;
 drop function if exists scheduler.GetInstanceId;
 drop function if exists scheduler.GetVersion;
 go
@@ -36,6 +38,7 @@ go
 drop table if exists scheduler.Task;
 drop table if exists scheduler.TaskHistory;
 drop table if exists scheduler.TaskExecution;
+drop table if exists scheduler.ReplicaStatus;
 go
 
 /*** SCHEMA ***/
