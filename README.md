@@ -24,7 +24,7 @@ This is intended as an administrative tool and as such requires and will schedul
 . ./src/DeploymentFunctions.ps1
 
 # Deploy once in AG mode
-Install-SchedulerSolution -Server primaryNode -Database agDatabase -agMode $true
+Install-SchedulerSolution -Server primaryNode -Database agDatabase -agMode $true -AvailabilityGroup AGName
 
 # Deploy once potential primary per-node in standalone mode (needed once per node only, not once per AG)
 Install-SchedulerSolution -Server primaryNode -Database Utility -agMode $false
@@ -35,7 +35,7 @@ Install-AutoUpsertJob -Server primaryNode -Database Utility -TargetDatabase agDa
 Install-AutoUpsertJob -Server secondaryNode -Database Utility -TargetDatabase agDatabase -NotifyOperator "Test Operator"
 
 # Create the job that keeps track of the replica status
-Install-ReplicaStatusJob -Server primaryNode -Database agDatabase -AvailabilityGroup AGName -NotifyOperator "Test Operator"
+Install-ReplicaStatusJob -Server primaryNode -Database agDatabase -NotifyOperator "Test Operator"
 ```
 
 If an instance hosts multiple availability groups, the Utility database would need to contain one AutoUpsert task for every AG.

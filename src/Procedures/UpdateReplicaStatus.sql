@@ -1,7 +1,14 @@
 create or alter procedure scheduler.UpdateReplicaStatus
-    @availabilityGroup nvarchar(128)
 as
 begin
+    set nocount on;
+    set xact_abort on;
+    
+    declare  @availabilityGroup nvarchar(128);
+
+    select 	@availabilityGroup = ag.AvailabilityGroup
+	from 	scheduler.GetAvailabilityGroup() as ag;
+
     merge scheduler.ReplicaStatus as rs
     using (
         select		ar.replica_server_name, ars.role_desc

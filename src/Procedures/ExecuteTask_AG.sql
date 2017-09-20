@@ -37,7 +37,6 @@ begin
 	select	@command = t.TSQLCommand
 			,@isEnabled = t.IsEnabled
 			,@isNotifyOnFailure = t.IsNotifyOnFailure
-			,@availabilityGroupName = t.AvailabilityGroup
 			,@identifier = t.Identifier
 			,@isCachedRoleCheck = t.IsCachedRoleCheck
 
@@ -50,17 +49,21 @@ begin
 		return;
 	end
 
-  	if @availabilityGroupName is not null
+	select 	@availabilityGroupName = ag.AvailabilityGroup
+	from 	scheduler.GetAvailabilityGroup() as ag;
+
+	/* Are we requesting a non-cached result? */
+	if @isCachedRoleCheck = 0
 	begin
-		/* Are we requesting a non-cached result? */
-		if @isCachedRoleCheck = 0 and scheduler.GetAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY'
+		if scheduler.GetAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY'
 		begin
 			return;
 		end
-		else if scheduler.GetCachedAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY'
-		begin
-  			return;
-		end
+	end
+	else if scheduler.GetCachedAvailabilityGroupRole(@availabilityGroupName) <> N'PRIMARY'
+	begin
+		print 'no primary cached'
+		return;
 	end
 
 	insert into scheduler.TaskExecution
