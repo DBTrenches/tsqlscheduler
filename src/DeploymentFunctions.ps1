@@ -2,11 +2,10 @@ Function Install-SchedulerSolution
 {
     [cmdletbinding()]
     Param (
-        $server = "localhost"
-        ,$database = "tsqlscheduler"
-        # False = Standalone deployment
-        ,$agMode = $false
-        ,$availabilityGroup = "TESTAG"
+        [string] $server
+        ,[string] $database
+        ,[boolean] $agMode = $false
+        ,[string] $availabilityGroup
     )
 
     $files = @('./Schema/scheduler.sql')
@@ -67,10 +66,10 @@ Function Install-AutoUpsertJob
 {
     [cmdletbinding()]
     Param (
-        $Server = "localhost"
-        ,$Database = "tsqlscheduler"
-        ,$TargetDatabase = "tsqlscheduler"
-        ,$NotifyOperator = "Test Operator"
+        [string] $Server
+        ,[string] $Database
+        ,[string] $TargetDatabase
+        ,[string] $NotifyOperator
     )
 
     $jobIdentifier = $TargetDatabase + "-UpsertJobsForAllTasks"
@@ -88,9 +87,9 @@ Function Install-ReplicaStatusJob
 {
     [cmdletbinding()]
     Param (
-        $Server = "localhost"
-        ,$Database = "tsqlscheduler"
-        ,$NotifyOperator = "Test Operator"
+        [string] $Server
+        ,[string] $Database
+        ,[string] $NotifyOperator
     )
 
     $jobIdentifier = $Database + "-RecordReplicaStatus"
