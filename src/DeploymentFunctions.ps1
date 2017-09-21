@@ -63,13 +63,16 @@ Function Install-SchedulerSolution
     
 }
 
-Function Install-AutoUpsertJob (
+Function Install-AutoUpsertJob 
+{
+    [cmdletbinding()]
+    Param (
         $Server = "localhost"
         ,$Database = "tsqlscheduler"
         ,$TargetDatabase = "tsqlscheduler"
         ,$NotifyOperator = "Test Operator"
-)
-{
+    )
+
     $jobIdentifier = $TargetDatabase + "-UpsertJobsForAllTasks"
     $query = "
         insert into scheduler.Task
@@ -81,12 +84,15 @@ Function Install-AutoUpsertJob (
     Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query "exec scheduler.CreateJobFromTask @identifier = '$jobIdentifier', @overwriteExisting = 1;"
 }
 
-Function Install-ReplicaStatusJob (
-    $Server = "localhost"
-    ,$Database = "tsqlscheduler"
-    ,$NotifyOperator = "Test Operator"
-)
+Function Install-ReplicaStatusJob 
 {
+    [cmdletbinding()]
+    Param (
+        $Server = "localhost"
+        ,$Database = "tsqlscheduler"
+        ,$NotifyOperator = "Test Operator"
+    )
+
     $jobIdentifier = $Database + "-RecordReplicaStatus"
     $query = "
         insert into scheduler.Task
