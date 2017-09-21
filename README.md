@@ -13,7 +13,9 @@ This is intended as an administrative tool and as such requires and will schedul
 
 ### Availability Group Mode
 
-- Clone the repository and dot source the DeploymentFunctions.ps1 script file
+- Clone the repository
+- Open a powershell session and change to the src folder
+- Import the powershell module that contains the install scripts
 - Deploy the solution in AG mode against a database in the AG
 - Deploy the solution in standalone mode against every instance which can host the primary replica (not in an AG database)
 - Deploy the AutoUpsert task on all nodes which can host the AG
@@ -21,7 +23,7 @@ This is intended as an administrative tool and as such requires and will schedul
 - Deploy the UpdateReplicaStatus job against the AG solution
 
 ```powershell
-. ./src/DeploymentFunctions.ps1
+Import-Module .\Modules\tsqlscheduler
 
 # Deploy once in AG mode
 Install-SchedulerSolution -Server primaryNode -Database agDatabase -agMode $true -AvailabilityGroup AGName
@@ -66,13 +68,15 @@ Key here is that the two standalone deployments will both periodically call into
 
 ### Standalone (Instance) Mode
 
-- Clone the repository and dot source the DeploymentFunctions.ps1 script file
+- Clone the repository
+- Open a powershell session and change to the src folder
+- Import the powershell module that contains the install scripts
 - Deploy the solution in standalone mode against the target instance
 - Deploy the AutoUpsert task on the instance
   - The notify operator must exist on the instance or the job will not be created.
 
 ```powershell
-. ./src/DeploymentFunctions.ps1
+Import-Module .\Modules\tsqlscheduler
 
 # Deploy in standalone mode
 Install-SchedulerSolution -Server primaryNode -Database Utility -agMode $false

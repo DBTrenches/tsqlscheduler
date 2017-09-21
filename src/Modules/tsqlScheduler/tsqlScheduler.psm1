@@ -102,3 +102,7 @@ Function Install-ReplicaStatusJob
     Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query $query
     Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query "exec scheduler.CreateJobFromTask @identifier = '$jobIdentifier', @overwriteExisting = 1;"
 }
+
+Export-ModuleMember Install-SchedulerSolution
+Export-ModuleMember Install-AutoUpsertJob
+Export-ModuleMember Install-ReplicaStatusJob
