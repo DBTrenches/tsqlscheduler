@@ -17,7 +17,7 @@ begin
 		,@FREQUENCY_HOUR varchar(6) = 'hour'
 		,@FREQUENCY_MINUTE varchar(6) = 'minute'
 		,@FREQUENCY_SECOND varchar(6) = 'second'
-		,@ACTIVE_START_DATE int = 20160101;
+		,@ACTIVE_START_DATE int = datepart(year,getutcdate()) * 10000 + datepart(month,getutcdate()) * 100 + datepart(day,getutcdate());
 
 	/* Validate parameters for basic correctness */
 	if @jobName is null
