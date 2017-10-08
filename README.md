@@ -180,6 +180,10 @@ Any task set to deleted (IsDeleted = 1) will have its corresponding agent job de
 
 Rather than query the DMV on every call to ExecuteTask (as was the behaviour in 1.0), a job runs to periodically persist the current status of each node.  This table is then queried by ExecuteTask to see if the task should execute.  This was done to minimise blocking caused when many concurrent tasks query this DMV.
 
+## Server Time
+
+The server needs to be in the UTC time zone for the solution to work correctly.  This is due to the comparison of sysjobs.date_modified to Task.SysStartTime in the UpsertJobsForAllTasks procedure.  SysStartTime is always recorded in UTC, whereas date_modified uses the server time.  If the server is not in UTC then there may be delays in job changes propagating to the agent job, or jobs may be recreated needlessly (depending on whether the server is ahead of or behind UTC).
+
 ## Code Style
 
 - Keywords should be in lowercase
