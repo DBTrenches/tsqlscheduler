@@ -17,7 +17,7 @@ begin
 		,@FREQUENCY_HOUR varchar(6) = 'hour'
 		,@FREQUENCY_MINUTE varchar(6) = 'minute'
 		,@FREQUENCY_SECOND varchar(6) = 'second'
-		,@ACTIVE_START_DATE int = 20160101;
+		,@ACTIVE_START_DATE int = datepart(year,getutcdate()) * 10000 + datepart(month,getutcdate()) * 100 + datepart(day,getutcdate());
 
 	/* Validate parameters for basic correctness */
 	if @jobName is null
@@ -105,15 +105,16 @@ begin
 	end
 	
 
+	/* Delete existing job if we need to */
+	if @existingJobId is not null and @overwriteExisting = 1
+	begin
+		exec msdb.dbo.sp_delete_job @job_id = @existingJobId;
+	end
+
 	/* Perform job management in a transaction (don't leave behind half-complete work)
 		- Let xact_abort 'handle' our errors for now
 	*/
 	begin tran
-		/* Delete existing job if we need to */
-		if @existingJobId is not null and @overwriteExisting = 1
-		begin
-			exec msdb.dbo.sp_delete_job @job_id = @existingJobId;
-		end
 		
 		/* MSDN docs for job creation: https://msdn.microsoft.com/en-gb/library/ms187320.aspx */
 
@@ -144,9 +145,6 @@ begin
 				,@owner_login_name = N'sa'
 				,@notify_email_operator_name = @notifyOperator
 				,@description = @jobDescription;
-
-		/* Add a job server (specifies this job should execute on this server) */
-		EXEC msdb.dbo.sp_add_jobserver @job_name=@jobName;
 
 		/* Add the TSQL job step, homed in the master database */
 		EXEC msdb.dbo.sp_add_jobstep 
@@ -187,5 +185,11 @@ begin
 				,@active_end_time=235959;
 
 	commit tran
+
+	/* Add a job server (specifies this job should execute on this server) 
+		- This also sends SQLAgent a notification to refresh its cache
+		- Do this outside of the transaction to ensure SQL Agent will see the changes
+	*/
+	EXEC msdb.dbo.sp_add_jobserver @job_name=@jobName;
 end
 go
