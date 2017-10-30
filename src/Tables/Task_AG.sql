@@ -11,7 +11,7 @@ create table scheduler.Task
 	,IsNotifyOnFailure bit not null constraint DF_Task_IsNotifyOnFailure default (1)
 	,IsEnabled bit not null constraint DF_Task_IsEnabled default (1)
 	,IsCachedRoleCheck bit not null
-    ,IsDeleted bit constraint DF_IsDeleted default (0)
+    ,IsDeleted bit not null constraint DF_IsDeleted default (0)
 	,SysStartTime datetime2 generated always as row start not null
 	,SysEndTime datetime2 generated always as row end not NULL
 	,period for system_time (SysStartTime, SysEndTime)
