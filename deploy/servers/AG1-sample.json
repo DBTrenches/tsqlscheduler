@@ -1,0 +1,17 @@
+{
+    "AvailablitiyGroupName": "AG1",
+    "Replicas": [
+    {
+        "Name": "Server1",
+        "Role": "Primary"
+    },
+    {
+        "Name": "Server2",
+        "Role": "Secondary"
+    },
+    {
+        "Name": "Server3",
+        "Role": "Secondary",
+        "IsSchedulerExcluded":true
+    }]
+}

@@ -1,0 +1,4 @@
+
+deploy/servers/*
+!deploy/servers/AG1-sample.json
+!deploy/servers/README.md
