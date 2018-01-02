@@ -1,3 +1,5 @@
+##### [Installation](#installation) | [Notes & Requirements](#notes-and-requirements) | [Managing Tasks](#managing-tasks) | [Monitoring](#monitoring) | [How It Works](#how-it-works)
+
 # tsqlScheduler
 
 When running an Availability Group installation, you may wish to have the Server Agent execute Jobs against your highly available databases. However in the event of failover these Tasks will not exist by default on the replica. Additionally if you modify a Job on the primary replica, keeping parity on each secondary replica requires a separate action. This module automates parity of Server Agent Jobs across all replicas and makes Tasks executed by these Jobs Highly Available alongside any HA database.  
@@ -17,33 +19,9 @@ This is intended as an administrative tool and as such requires and will schedul
 
 - Clone the repository
 - Open a powershell session and change to the `src` folder
-- Execute `..\deploy\deploy "Availability Group"` 
+- Execute `..\deploy\deploy "HA"` followed by the name of your AG
 
-If an instance hosts multiple availability groups, the `Utility` database would need to contain one AutoUpsert task for every AG.
-
-If the Utility database on each instance was also going to be used to schedule instance tasks (rather than just the tasks in `agDatabase`) an additional pair of tasks would be required:
-
-```powershell
-Install-AutoUpsertJob -Server primaryNode -Database Utility -TargetDatabase Utility -NotifyOperator "Test Operator"
-Install-AutoUpsertJob -Server secondaryNode -Database Utility -TargetDatabase Utility -NotifyOperator "Test Operator"
-```
-
-#### Auto-create jobs in AG deployments - walkthrough
-
-The deployment above assumes we have a two node cluster (`primaryNode`, `secondaryNode`) which hosts an AG that is primary/secondary on the respectively named nodes, containing a database called `agDatabase`.
-
-For a two-replica AG, the scheduler solution is deployed 3 times (number of replicas plus 1), and two auto-upsert jobs are created.
-
-##### `agDatabase`
-- Contains the scheduler schema deployed in AG mode
-- Contains no tasks by default
-- Contains a stored procedure that creates an agent job on the current instance based on tasks in the task table
-
-##### `primaryNode`, `secondaryNode`
-- Contains the scheduler schema deployed in standalone mode
-- Contains a single task (and linked agent job) which will periodically call the upsert procedure in `agDatabase`
-
-Key here is that the two standalone deployments will both periodically call into `agDatabase` and invoke the upsert stored procedure, creating agent jobs for that AG on both nodes.  Note that this requires the AG to have readable secondaries.
+A config file for your AG is required. This file should be located in the [deploy/servers](deploy/servers) directory with the naming convention `agName.json` and should be of [this form](deploy/servers/AG1-sample.json) (for an AG with a name of `AG1-sample`). The deploy script will attempt to auto-create a config file in the event one is not found, although you will need to manually enter some information. 
 
 ### Standalone (Instance) Mode
 
@@ -53,66 +31,63 @@ While the Scheduler is developed for use in an AG environment, it is possible to
 - Open a powershell session and change to the `src` folder
 - Execute `..\deploy\deploy "Single Instance"` 
 
+Jump to: [Removing the Scheduler](deploy/README.md#uninstallation)
 
-### Notes & Requirements
+## Notes and Requirements
 
-- Both `Utility` and `agDatabase` DBs must be created and added as necessary to the AG before Installation or uninstallation. This module neither `CREATE`s nor `DROP`s databases nor executes commands against an AG at any point. 
-- Deployment scripts assume you will use integrated security.  Use of SQL Logins has not been tested but can be attempted but adding the appropriate [`Invoke-SqlCmd`][invoke-sqlcmd - BOL] flags in the [tsqlScheduler module](src/Modulers/tsqlScheduler/tsqlScheduler.psm1) and [deploying manually](deploy/README.md).
-- The solution will be deployed into the `scheduler` schema.
-- The script requires SQL 2016 SP1.
-- The objects can be removed with the [RemoveAllObjects](src/RemoveAllObjects.sql) SQL script.  Note that this will remove the objects but not any SQL Agent jobs which have been created.
-	- You can also execute the Powershell command `UnInstall-SchedulerSolution` and specify the Server and Database to remove all objects including Agent Jobs
-- Conform your job names (`@jobIdentifier`) to the pattern `$ownLocation-$target-$task`
-	- e.g. - an AutoUpsert job deployed for `AG1-sample` would be named `Utility-agDatabase-UpsertJobsForAllTasks`
-- Renaming of jobs is not supported. You will need to delete (set `IsDeleted=1`) and re-create the task. 
-- Do not deploy jobs to the HA scheduler with any dependencies outside the AG. These jobs will not succeed after failover unless the dependencies are available at the failover location.
-	- Likewise, any replicas excluded from the scheduler will not have Jobs executing on the event of failover
-- On the event of failover, currently running HA Jobs may forcibly fail.  
+- SQL 2016 is required
+- [The server time must be UTC](#server-time)
+- The replica must be configured as a [readable secondary][readable-secondary] 
+- All requisite DBs must be created and added to the AG as necessary before installation.  
+- Deployment scripts use integrated security.  Use of SQL Logins has not been tested but can be attempted but adding the appropriate [`Invoke-SqlCmd`][invoke-sqlcmd - BOL] flags in the [tsqlScheduler module](src/Modulers/tsqlScheduler/tsqlScheduler.psm1) and [deploying manually](deploy/README.md).
+- Task names (`@jobIdentifier`) should match the pattern `$ownLocation-$target-$task`
+- Consider environment. Tasks in the HA scheduler with any dependencies outside the AG may not succeed after failover unless all dependencies are already available at the failover location.
+- At time of failover, currently running HA Jobs may forcibly fail.  
 
 ## Managing Tasks
 
-### Creating a task
+Jobs are managed via rows in the scheduler.Task table. Use the [`UpsertTask`](src/Procedures/UpsertTask.sql) proc to create, modify, or delete a task. To retrieve the current values for a task & make incremental modifications, you may use the [`GetTask`](src/Procedures/GetTask.sql) proc. You can also maintain a separate repository with configuration files and publish tasks [as described here](deploy/tasks/README.md).  
 
-Add a task to the scheduler.Task table, using the following SQL as an template.
+Usage of `UpsertTask` is demonstrated below.
 
 ```sql
-insert into scheduler.Task
-( Identifier, TSQLCommand, StartTime, FrequencyType, FrequencyInterval, NotifyOnFailureOperator, IsNotifyOnFailure )
-values
-( 'TaskName', 'select @@servername', '00:00', 3, 10, 'Test Operator', 0 );
-```
+declare 
+	@jobName nvarchar(255) =  N'Utility-agDatabase-TaskName',
+	@tsql nvarchar(max) =     N'',
+	@operator nvarchar(128) = N'Test Operator'; 
 
-If you are deploying the task into an installation in AG mode you'll need to also specify the availability group name.
+exec scheduler.UpsertTask
+    @action =            'INSERT', -- or 'UPDATE' or 'DELETE'
+    @jobIdentifier =     @jobName, 
+    @tsqlCommand =       @tsql, 
+    @startTime =         '00:00', 
+    @frequencyType =     3, 
+    @frequencyInterval = 1, 
+    @notifyOperator =    @operator, 
+    @isNotifyOnFailure = 0;
+```
 
 You can then either wait for the AutoUpsert job to run, or force creation of the agent job:
 
 ```sql
-exec scheduler.CreateJobFromTask @identifier = 'TaskName'
+exec scheduler.CreateJobFromTask @identifier = 'Utility-agDatabase-TaskName'
 ```
+
+After deleting a task (`UpsertTask @action='DELETE, @task=...`) in order forcibly delete the agent job, either wait for the AutoUpsert job or manually call the `RemoveJobFromTask` procedure. You are then free to delete the row from the task table.
 
 #### Column reference
 
 Frequency Type
 - 1 = Once per day
-- 2 = Every x hours
-- 3 = Every x minutes
-- 4 = Every x seconds
+- 2 = Every `x` hours
+- 3 = Every `x` minutes
+- 4 = Every `x` seconds
 
-Frequency interval corresponds to the x for frequency types 2-4, and should be 0 if the frequency is set to daily.
+`FrequencyInterval` corresponds to the `x` for frequency types 2-4. It **must** be 0 if the frequency is set to daily.
 
-The start time specified is either the time of day the job will run (if once per day), or the time of day the schedule starts (for any other frequency).
+The `StartTime` specified is either the time of day the job will run (if once per day), or the time of day the schedule starts (for any other frequency).
 
 If `IsNotifyOnFailure` is true (1) then the specified operator will be notified by email every time the job fails.
-
-### Deleting a job/task
-
-Set the `IsDeleted` flag to 1 on the task, and then either wait for the AutoUpsert job or manually call the `RemoveJobFromTask` procedure:
-
-```sql
-exec scheduler.RemoveJobFromTask @identifier = 'TaskName'
-```
-
-You are then free to delete the row from the task table.
 
 ## Monitoring
 
@@ -149,29 +124,28 @@ outer apply (
 
 The Task table holds one row for each task that should be executed in the context of that database.  When an agent job is created from this task a job is created as a wrapper around the scheduler.ExecuteTask stored procedure.  This procedure uses the metadata from the Task table to execute the TSQLCommand with `sp_executesql`.
 
-Before the task is executed the Id of the instance, task, and execution are stored in the [`context_info`][context_info - BOL] object, which allows the task to be tracked.
+Before the task is executed the Id of the instance, task, and execution are stored in the [`context_info`][context_info - BOL] object, which allows the task to be tracked via the [`scheduler.CurrentlyExecutingTasks`](crs/Views/CurrentlyExecutingTasks.sql) view.
 
 The auto-upsert logic uses the temporal table field `SysStartTime` on the Task table, and the agent job's last modified date, to determine which jobs require modification.
 
-Any task set to deleted `IsDeleted = 1` will have its corresponding agent job deleted by the upsert job.
+### Tracking Replica Role (AG Mode)
 
-## Tracking Replica Role (AG Mode)
+The `RecordReplicaStatus` job is created on installation and runs to periodically persist the current status of each node to [`ReplicaStatus`](src/Tables/ReplicaStatus.sql).  This table is then queried by `ExecuteTask` to see **if** the task should execute.  This is done to minimise blocking caused by many concurrent tasks querying [the relevant AG DMVs](src/Procedures/UpdateReplicaStatus.sql).
 
-Rather than query the DMV on every call to ExecuteTask (as was the behaviour in 1.0), a job runs to periodically persist the current status of each node.  This table is then queried by ExecuteTask to see if the task should execute.  This is done to minimise blocking caused when many concurrent tasks query this DMV.
+### Server Time
 
-## Server Time
+**The server needs to be in the UTC time zone** for the solution to work correctly.  This is due to the comparison of [`sysjobs.date_modified`][sysjobs - BOL] to `Task.SysStartTime` in the `UpsertJobsForAllTasks` procedure.  `SysStartTime` is always recorded in UTC, whereas `date_modified` uses the server time.  If the server is not in UTC then there may be delays in job changes propagating to the agent job, or jobs may be recreated needlessly (depending on whether the server is ahead of or behind UTC).
 
-The server needs to be in the UTC time zone for the solution to work correctly.  This is due to the comparison of [`sysjobs.date_modified`][sysjobs - BOL] to `Task.SysStartTime` in the `UpsertJobsForAllTasks` procedure.  `SysStartTime` is always recorded in UTC, whereas `date_modified` uses the server time.  If the server is not in UTC then there may be delays in job changes propagating to the agent job, or jobs may be recreated needlessly (depending on whether the server is ahead of or behind UTC).
-
-## Code Style
+### Code Style
 
 - Keywords should be in lowercase
 - Identifiers should not be escaped with brackets unless required (better to avoid using a reserved keyword)
-- Use <> rather than !=
-- Variables use lowerCamelCase
-- Constants in ALL_CAPS
+- Use `<>` rather than `!=`
+- Variables use `lowerCamelCase`
+- Constants in `ALL_CAPS`
 - Terminate statements with a semicolon
 
 [sysjobs - BOL]: https://docs.microsoft.com/en-us/sql/relational-databases/system-tables/dbo-sysjobs-transact-sql
 [context_info - BOL]: https://docs.microsoft.com/en-us/sql/t-sql/functions/context-info-transact-sql
 [invoke-sqlcmd - BOL]: https://docs.microsoft.com/en-us/sql/powershell/invoke-sqlcmd-cmdlet
+[readable-secondary]: https://docs.microsoft.com/en-us/sql/database-engine/availability-groups/windows/active-secondaries-readable-secondary-replicas-always-on-availability-groups

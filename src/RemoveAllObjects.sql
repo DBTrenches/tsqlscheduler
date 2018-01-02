@@ -1,27 +1,3 @@
-/*** PROCEDURES ***/
-
-drop procedure if exists scheduler.CreateAgentJob;
-drop procedure if exists scheduler.CreateJobFromTask;
-drop procedure if exists scheduler.DeleteAgentJob;
-drop procedure if exists scheduler.ExecuteTask;
-drop procedure if exists scheduler.RemoveJobFromTask;
-drop procedure if exists scheduler.UpsertJobsForAllTasks;
-drop procedure if exists scheduler.SetContextInfo;
-drop procedure if exists scheduler.UpdateReplicaStatus;
-go
-
-/*** FUNCTIONS ***/
-
-drop function if exists scheduler.GetAvailabilityGroupRole;
-drop function if exists scheduler.GetCachedAvailabilityGroupRole;
-drop function if exists scheduler.GetAvailabilityGroup;
-drop function if exists scheduler.GetInstanceId;
-drop function if exists scheduler.GetVersion;
-go
-
-/*** VIEWS ***/
-drop view if exists scheduler.CurrentlyExecutingTasks;
-
 /*** TABLES ***/
 
 /* If system versioning is on turn it off or the drop will fail */
@@ -42,5 +18,39 @@ drop table if exists scheduler.TaskExecution;
 drop table if exists scheduler.ReplicaStatus;
 go
 
+/*** VIEWS ***/
+declare @dropView nvarchar(max)=N'';
+
+select @dropView+='drop view if exists scheduler.'+o.[name]+';'+char(10)
+from sys.objects o 
+where o.[type]=N'V'
+    and o.[schema_id]=schema_id(N'scheduler');
+
+exec sp_executesql @dropView;
+go
+
+/*** PROCEDURES ***/
+declare @dropProc nvarchar(max)=N'';
+
+select @dropProc+='drop proc if exists scheduler.'+o.[name]+';'+char(10)
+from sys.objects o 
+where o.[type]=N'P'
+    and o.[schema_id]=schema_id(N'scheduler');
+
+exec sp_executesql @dropProc;
+go
+
+/*** FUNCTIONS ***/
+declare @dropFun nvarchar(max)=N'';
+
+select @dropFun+='drop function if exists scheduler.'+o.[name]+';'+char(10)
+from sys.objects o 
+where o.[type] in (N'FN',N'IF',N'TF')
+    and o.[schema_id]=schema_id(N'scheduler');
+
+exec sp_executesql @dropFun;
+go
+
 /*** SCHEMA ***/
 drop schema if exists scheduler;
+go

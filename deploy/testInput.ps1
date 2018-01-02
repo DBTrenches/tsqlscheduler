@@ -5,7 +5,7 @@
     ,[string][parameter(mandatory=$true)] $server
     ,[string][parameter(mandatory=$true)] $notifyOperator
     ,[string][parameter(mandatory=$true)] $database
-    ,[string][parameter(mandatory=$true)] $agDatabase
+    ,[string] $agDatabase
 )
 
 # TODO:

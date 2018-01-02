@@ -1,0 +1,11 @@
+{
+    "Identifier": "Utility-Sample_Task",
+    "TSQLCommand": "print 'Hello, World!';",
+    "StartTime": "09:30:00",
+    "FrequencyTypeDesc": "Hour",
+    "FrequencyInterval": 2,
+    "NotifyOnFailureOperator": "Test Operator",
+    "IsNotifyOnFailure": true,
+    "IsEnabled": false,
+    "IsDeleted": false
+}

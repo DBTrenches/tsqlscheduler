@@ -19,91 +19,41 @@ begin
 		,@FREQUENCY_SECOND varchar(6) = 'second'
 		,@ACTIVE_START_DATE int = datepart(year,getutcdate()) * 10000 + datepart(month,getutcdate()) * 100 + datepart(day,getutcdate());
 
-	/* Validate parameters for basic correctness */
-	if @jobName is null
-	begin
-		;throw 50000, '@jobName must be specified', 1;
-	end
-
-	if @command is null
-	begin
-		;throw 50000, '@command must be specified', 1;
-	end
-
-	if @frequencyType is null
-	begin
-		;throw 50000, '@frequencyType must be specified', 1;
-	end
-
-	if @frequencyInterval is null
-	begin
-		;throw 50000, '@frequencyInterval must be specified', 1;
-	end
-
-	if @startTime is null
-	begin
-		;throw 50000, '@startTime must be specified', 1;
-	end
-
-	if @notifyOperator is null
-	begin
-		;throw 50000, '@notifyOperator must be specified', 1;
-	end
-
-	/* Extended validation */
-	if @frequencyType not in (@FREQUENCY_DAY, @FREQUENCY_HOUR, @FREQUENCY_MINUTE, @FREQUENCY_SECOND)
-	begin
-		;throw 50000, '@frequencyType must be one of: day, hour, minute, second',1;
-	end
-
-	if @frequencyType = @FREQUENCY_DAY and @frequencyInterval <> 0
-	begin
-		;throw 50000, 'Daily frequency only supports an interval of 0 (once per day)', 1;
-	end
-
-	if @frequencyType = @FREQUENCY_HOUR and @frequencyInterval > 23
-	begin
-		;throw 50000, 'Hourly frequency with an interval of 24 hours or more are not supported', 1;
-	end
-
-	if @frequencyType = @FREQUENCY_HOUR and not @frequencyInterval between 1 and 23
-	begin
-		;throw 50000, 'Hourly frequency requires an interval between 1 and 23', 1;
-	end
-
-	if @frequencyType = @FREQUENCY_MINUTE and not @frequencyInterval between 1 and 3599
-	begin
-		;throw 50000, 'Minute frequency requires an interval between 1 and 3599 (1 minute to 1 day)', 1;
-	end
-
-	if @frequencyType = @FREQUENCY_SECOND and not @frequencyInterval between 1 and 3599
-	begin
-		;throw 50000, 'Second frequency requires an interval between 1 and 3599 (1 second to 1 hour)', 1;
-	end
-
-	/* Validate job does not already exist (if overwrite is not specified)
-	   Validate operator exists 
-	*/
-
-	declare @existingJobId uniqueidentifier;
-	select @existingJobId = s.job_id
-	from msdb.dbo.sysjobs as s
-	where s.name = @jobName;
-
-	if @existingJobId is not null and @overwriteExisting = 0
-	begin
-		;throw 50000, 'Specified job name already exists', 1;
-	end
-
-	if not exists (
-		select 1
-		from msdb.dbo.sysoperators as o
-		where o.name = @notifyOperator
-	)
-	begin
-		;throw 50000, 'Specified @notifyOperator does not exist', 1;
-	end
+    declare 
+        @frequencyTypeNum tinyint = scheduler.FrequencyTypeFromDesc( @frequencyType ),
+        @IsValidTask bit = 1,
+        @Comments nvarchar(max),
+        @ErrorMsg nvarchar(max) = N'',
+        @existingJobId uniqueidentifier;
 	
+    select
+        @IsValidTask = tv.IsValidTask,
+        @Comments = tv.Comments,
+        @existingJobId = tv.ExistingJobID
+    from scheduler.ValidateTaskProfile (
+        null,
+        @jobName,
+        @command,
+        @startTime,
+        @frequencyTypeNum,
+        @frequencyInterval,
+        @notifyOperator,
+        1,
+        @overwriteExisting
+    ) tv;
+
+    if @IsValidTask = 0
+    begin
+        with errors (msg) as (
+            select msg
+            from openjson(@Comments) 
+            with (msg nvarchar(max) 'strict $.msg') 
+        )
+        select @ErrorMsg += msg+char(10)
+        from errors;
+
+        throw 50000, @ErrorMsg, 1;
+    end;
 
 	/* Delete existing job if we need to */
 	if @existingJobId is not null and @overwriteExisting = 1

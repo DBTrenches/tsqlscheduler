@@ -5,7 +5,6 @@ as
 begin
 	set xact_abort on;
 	set nocount on;
-
 	
 	/* Validate parameters for basic correctness */
 	if @jobName is null
@@ -23,7 +22,7 @@ begin
        
     if @existingJobId is null 
     begin
-          ;throw 50000, 'Specified job name does not exists', 1;
+          ;throw 50000, 'Specified job name does not exist', 1;
           RETURN;
     end
 

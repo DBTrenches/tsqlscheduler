@@ -1,5 +1,8 @@
 {
     "AvailablitiyGroupName": "AG1",
+    "NotifyOperator":"Test Operator",
+    "LocalDB":"Utility",
+    "HADB":"agDatabase",
     "Replicas": [
     {
         "Name": "Server1",
