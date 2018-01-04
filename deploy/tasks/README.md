@@ -25,3 +25,9 @@ foreach($t in $tasks){
 ``` 
 
 Hey presto, you've now copied all the tasks in this repo to your dev server! :grin: 
+
+## Managing Tasks with Developers
+
+![](../../doc/img/tasks-config-based-deployment.png)
+
+Using config-based deployment & keeping a separate repository for your task configs allows you to extend task management to developers and other users without over-privileging. Keep your tasks in private repository and allow users to open a PR when they wish to add/update/delete tasks. Deployment to targeted environments is still bottleneck through an appropriately-permissioned connection. 
