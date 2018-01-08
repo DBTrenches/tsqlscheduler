@@ -7,7 +7,7 @@ $configFile = "./AG1-sample/Sample_Task.json"
 $srv = Server1
 $db = Utility
 
-Publish-TaskFromConfig -config $configFile - $server $srv -Database $db
+Publish-TaskFromConfig -config $configFile -Server $srv -Database $db
 ```
 
 The config files can be generated from pre-existing rows in the database by querying the [`TaskConfig`](../../src/Views/TaskConfig.sql) view. However, extracting via this method will provide a one-line/non-prettified json blob. 
