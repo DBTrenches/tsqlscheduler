@@ -191,11 +191,17 @@ Function Publish-TaskFromConfig
 {
     [cmdletbinding()]
     Param (
-        [string] $config
+         [string] $config
         ,[string] $server
         ,[string] $database
         ,[string] $action = 'INSERT'
     )
+
+    $validTarget=(Get-SqlDatabase -ServerInstance $server -Name $database -ErrorAction SilentlyContinue)
+    if($validTarget -eq $null){
+        Write-Host "Connection not validated to [$server].[$database]. Aborting..." -ForegroundColor Red
+        return
+    }
 
     $task = Get-Content -LiteralPath $config | ConvertFrom-Json
     
