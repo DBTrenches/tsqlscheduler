@@ -194,7 +194,7 @@ Function Publish-TaskFromConfig
          [string] $config
         ,[string] $server
         ,[string] $database
-        ,[string] $action = 'INSERT'
+        ,[string] $action 
     )
 
     $validTarget=(Get-SqlDatabase -ServerInstance $server -Name $database -ErrorAction SilentlyContinue)
@@ -203,8 +203,31 @@ Function Publish-TaskFromConfig
         return
     }
 
-    $task = Get-Content -LiteralPath $config | ConvertFrom-Json
+    if($action -eq $null){$action='INSERT'}
+    if($action -eq "UPDATE"){$action='INSERT'}
     
+    $task = Get-Content -LiteralPath $config | ConvertFrom-Json
+    $jobName=$task.Identifier
+
+    if($action -eq "RENAME"){
+        Write-Host "TODO: add support for renaming tasks from PS..." -ForegroundColor Red
+        return
+    }
+
+    if(($action -eq 'DELETE') -and ($task.IsDeleted -ne $true)){
+        Write-Host "Task '$jobName' selected for DELETION must be declared as such in config. Aborting..." -ForegroundColor Red
+        notepad "$config"
+        return
+    }
+
+    if(($action -ne 'DELETE') `
+        -and ($action -ne 'INSERT') `
+        -and ($action -ne 'UPDATE') )
+    {
+        Write-Host "Selected command '$action' is unsupported. Aborting..." -ForegroundColor Red
+        return
+    }
+
 # Invoke-SQLCmd sucks for parameterization & Json is a text bomb so...
 
     $upsertTaskQuery = "

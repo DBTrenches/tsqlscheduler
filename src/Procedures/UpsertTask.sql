@@ -11,7 +11,6 @@ create or alter proc scheduler.UpsertTask
     @notifyOperator    sysname       = null,
     @isNotifyOnFailure bit           = 1,
     @IsEnabled         bit           = 1,
---    @IsCachedRoleCheck bit           = 1,
     @IsDeleted         bit           = 0,
     @overwriteExisting bit           = 0
 as
@@ -118,7 +117,6 @@ begin;
                                   @notifyOperator    = @notifyOperator,
                                   @isNotifyOnFailure = @isNotifyOnFailure,
                                   @IsEnabled         = @IsEnabled,
---                                  @IsCachedRoleCheck = @IsCachedRoleCheck,
                                   @IsDeleted         = @IsDeleted;
 
         return;
@@ -134,7 +132,6 @@ begin;
                                   @notifyOperator    = @notifyOperator,
                                   @isNotifyOnFailure = @isNotifyOnFailure,
                                   @IsEnabled         = @IsEnabled,
---                                  @IsCachedRoleCheck = @IsCachedRoleCheck,
                                   @IsDeleted         = @IsDeleted;
 
         return;

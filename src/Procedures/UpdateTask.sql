@@ -40,6 +40,7 @@ begin
                 where t.TaskId = @taskId
                     and t.Identifier <> @newName )
     begin;
+-- TODO: add support for sychronous rename in AG topology
         set @isRename = 1;
     end;
 
