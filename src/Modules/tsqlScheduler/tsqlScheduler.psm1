@@ -228,8 +228,9 @@ Function Publish-TaskFromConfig
         return
     }
 
-# Invoke-SQLCmd sucks for parameterization & Json is a text bomb so...
+    Write-Verbose "Inputs passed preliminary validation. Attempting to publish task [$jobName] to [$server].[$database]."
 
+# Invoke-SQLCmd sucks for parameterization & Json is a text bomb so...
     $upsertTaskQuery = "
 exec scheduler.UpsertTask
     @action = @action,
