@@ -194,7 +194,7 @@ Function Publish-TaskFromConfig
          [string] $config
         ,[string] $server
         ,[string] $database
-        ,[string] $action 
+        ,[string] $action = 'INSERT'
     )
 
     $validTarget=(Get-SqlDatabase -ServerInstance $server -Name $database -ErrorAction SilentlyContinue)
