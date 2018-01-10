@@ -1,14 +1,15 @@
 
 create or alter function scheduler.ValidateTaskProfile (
-    @taskId            int,
-    @jobIdentifier     sysname,
-    @tsqlCommand       nvarchar(max),
-    @startTime         time,
-    @frequencyType     tinyint,
-    @frequencyInterval smallint,
-    @notifyOperator    sysname,
-    @isNotifyOnFailure bit,
-    @overwriteExisting bit = 0
+    @taskId					int,
+    @jobIdentifier			sysname,
+    @tsqlCommand			nvarchar(max),
+    @startTime				time,
+    @frequencyType			tinyint,
+    @frequencyInterval		smallint,
+    @notifyOperator			sysname,
+	@isNotifyOnFailure		bit,
+	@notifyLevelEventlog	int = 2,
+    @overwriteExisting		bit = 0
 )
 returns @IsTaskValid table (
     taskId                  int,
@@ -22,6 +23,7 @@ returns @IsTaskValid table (
     FrequencyInterval       smallint,
     NotifyOnFailureOperator nvarchar(128),
     IsNotifyOnFailure       bit,
+	NotifyLevelEventlog		int,
     ExistingJobID           uniqueidentifier
 )
 as
@@ -210,7 +212,8 @@ begin
         FrequencyTypeDesc,
         FrequencyInterval,
         NotifyOnFailureOperator,
-        IsNotifyOnFailure,
+		IsNotifyOnFailure,
+		NotifyLevelEventlog,
         ExistingJobID )
     values ( 
         @taskId, 
@@ -223,7 +226,8 @@ begin
         @frequencyTypeDesc,
         @frequencyInterval, 
         @notifyOperator, 
-        @isNotifyOnFailure,
+		@isNotifyOnFailure,
+		@notifyLevelEventlog,
         @existingJobId );
 
     return

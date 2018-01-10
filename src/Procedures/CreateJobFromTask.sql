@@ -40,6 +40,7 @@ begin
 			,@startTime time
 			,@notifyOperator nvarchar(128)
 			,@description nvarchar(max)
+			,@notifyLevelEventlog int 
 	declare @db nvarchar(max) = db_name(db_id());
 
 	set @description = 'Created from task ' + cast(@taskId as varchar(12)) + ' in database ' + @db;
@@ -49,6 +50,7 @@ begin
 			,@frequencyInterval = t.FrequencyInterval
 			,@startTime = t.StartTime
 			,@notifyOperator = t.NotifyOnFailureOperator
+			,@notifyLevelEventlog=t.NotifyLevelEventlog
 	from	scheduler.Task as t
 	where	t.TaskId = @taskId;
 	
@@ -62,6 +64,7 @@ begin
 			,@frequencyInterval = @frequencyInterval
 			,@startTime = @startTime
 			,@notifyOperator = @notifyOperator
+			,@notifyLevelEventlog=@notifyLevelEventlog
 			,@overwriteExisting = @overwriteExisting
 			,@description = @description;
 end

@@ -47,6 +47,7 @@ begin;
 +nchar(10)+'    ,@frequencyTypeDesc = N''' +convert(nvarchar(max),FrequencyTypeDesc)      +''''
 +nchar(10)+'    ,@frequencyInterval = '    +convert(nvarchar(max),FrequencyInterval)
 +nchar(10)+'    ,@notifyOperator = N'''    +convert(nvarchar(max),NotifyOnFailureOperator)+''''
++nchar(10)+'    ,@notifyLevelEventlog = '  +convert(nvarchar(max),NotifyLevelEventlog)
 +nchar(10)+'    ,@isNotifyOnFailure = '    +convert(nvarchar(max),IsNotifyOnFailure)
 +nchar(10)+'    ,@isEnabled = '            +convert(nvarchar(max),IsEnabled)
 --+nchar(10)+'    ,@isCachedRoleCheck = '    +convert(nvarchar(max),IsCachedRoleCheck)
@@ -60,6 +61,7 @@ begin;
                FrequencyTypeDesc,
                FrequencyInterval,
                NotifyOnFailureOperator,
+			   NotifyLevelEventlog,
                IsNotifyOnFailure,
                IsEnabled,
 --               IsCachedRoleCheck,

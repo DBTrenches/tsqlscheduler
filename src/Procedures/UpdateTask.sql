@@ -7,6 +7,7 @@ create or alter proc scheduler.UpdateTask
     @frequencyType     tinyint,
     @frequencyInterval smallint,
     @notifyOperator    sysname,
+	@notifyLevelEventlog int =2,
     @isNotifyOnFailure bit = 1,
     @IsEnabled         bit = 0,
     @IsDeleted         bit = 1
@@ -54,6 +55,7 @@ begin
             FrequencyInterval       = @frequencyInterval,
             NotifyOnFailureOperator = @notifyOperator,
             IsNotifyOnFailure       = @isNotifyOnFailure,
+			NotifyLevelEventlog		= @notifyLevelEventlog,
             IsEnabled               = @IsEnabled,
             IsDeleted               = @IsDeleted
         where TaskId = @taskId;

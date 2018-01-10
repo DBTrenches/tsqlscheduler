@@ -10,6 +10,7 @@ create or alter proc scheduler.UpsertTask
     @frequencyInterval smallint      = null,
     @notifyOperator    sysname       = null,
     @isNotifyOnFailure bit           = 1,
+	@notifyLevelEventlog int		 = 2,
     @IsEnabled         bit           = 1,
     @IsDeleted         bit           = 0,
     @overwriteExisting bit           = 0
@@ -90,6 +91,7 @@ begin;
         @frequencyTypeNum,
         @frequencyInterval,
         @notifyOperator,
+		@notifyLevelEventlog,
         @isNotifyOnFailure,
         @overwriteExisting
     ) tv;
@@ -109,30 +111,32 @@ begin;
 
     if @action = 'INSERT'
     begin;
-        exec scheduler.CreateTask @jobIdentifier     = @jobIdentifier,
-                                  @tsqlCommand       = @tsqlCommand,
-                                  @startTime         = @startTime,
-                                  @frequencyType     = @frequencyTypeNum,
-                                  @frequencyInterval = @frequencyInterval,
-                                  @notifyOperator    = @notifyOperator,
-                                  @isNotifyOnFailure = @isNotifyOnFailure,
-                                  @IsEnabled         = @IsEnabled,
-                                  @IsDeleted         = @IsDeleted;
+        exec scheduler.CreateTask @jobIdentifier       = @jobIdentifier,
+                                  @tsqlCommand         = @tsqlCommand,
+                                  @startTime           = @startTime,
+                                  @frequencyType       = @frequencyTypeNum,
+                                  @frequencyInterval   = @frequencyInterval,
+                                  @notifyOperator      = @notifyOperator,
+								  @notifyLevelEventlog = @notifyLevelEventlog,
+                                  @isNotifyOnFailure   = @isNotifyOnFailure,
+                                  @IsEnabled           = @IsEnabled,
+                                  @IsDeleted           = @IsDeleted;
 
         return;
     end;
     if @action = 'UPDATE'
     begin;
-        exec scheduler.UpdateTask @taskId            = @taskId,
-                                  @jobIdentifier     = @jobIdentifier,
-                                  @tsqlCommand       = @tsqlCommand,
-                                  @startTime         = @startTime,
-                                  @frequencyType     = @frequencyTypeNum,
-                                  @frequencyInterval = @frequencyInterval,
-                                  @notifyOperator    = @notifyOperator,
-                                  @isNotifyOnFailure = @isNotifyOnFailure,
-                                  @IsEnabled         = @IsEnabled,
-                                  @IsDeleted         = @IsDeleted;
+        exec scheduler.UpdateTask @taskId              = @taskId,
+                                  @jobIdentifier       = @jobIdentifier,
+                                  @tsqlCommand         = @tsqlCommand,
+                                  @startTime           = @startTime,
+                                  @frequencyType       = @frequencyTypeNum,
+                                  @frequencyInterval   = @frequencyInterval,
+                                  @notifyOperator      = @notifyOperator,
+								  @notifyLevelEventlog = @notifyLevelEventlog,
+                                  @isNotifyOnFailure   = @isNotifyOnFailure,
+                                  @IsEnabled           = @IsEnabled,
+                                  @IsDeleted           = @IsDeleted;
 
         return;
     end;

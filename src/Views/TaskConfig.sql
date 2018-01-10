@@ -16,6 +16,7 @@ select
         IsNotifyOnFailure,
         IsEnabled,
         IsDeleted,
+		NotifyLevelEventlog,
         SysStartTime,
         SysEndTime 
     for json path, without_array_wrapper) as Config

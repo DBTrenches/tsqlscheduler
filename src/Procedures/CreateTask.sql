@@ -7,6 +7,7 @@ create or alter proc scheduler.CreateTask
     @frequencyInterval smallint,
     @notifyOperator    sysname,
     @isNotifyOnFailure bit = 1,
+	@notifyLevelEventlog int =2,
     @IsEnabled         bit = 1,
 --    @IsCachedRoleCheck bit = 1,
     @IsDeleted         bit = 0
@@ -21,6 +22,7 @@ begin
            FrequencyType,
            FrequencyInterval,
            NotifyOnFailureOperator,
+		   NotifyLevelEventlog,
            IsNotifyOnFailure,
            IsEnabled,
 --           IsCachedRoleCheck, 
@@ -31,6 +33,7 @@ begin
            FrequencyType           = @frequencyType,
            FrequencyInterval       = @frequencyInterval,
            NotifyOnFailureOperator = @notifyOperator,
+		   NotifyLevelEventlog	   = @notifyLevelEventlog,
            IsNotifyOnFailure       = @isNotifyOnFailure,
            IsEnabled               = @IsEnabled,
            --IsCachedRoleCheck       = @IsCachedRoleCheck,

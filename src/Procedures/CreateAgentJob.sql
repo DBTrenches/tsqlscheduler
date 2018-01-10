@@ -6,6 +6,7 @@ create or alter procedure scheduler.CreateAgentJob
 	,@frequencyInterval tinyint /* Ignored for day, every N for Hour/Minute */
 	,@startTime time
 	,@notifyOperator nvarchar(128)
+	,@notifyLevelEventlog int=2
 	,@overwriteExisting bit = 0
 	,@description nvarchar(max) = null
 as
@@ -39,6 +40,7 @@ begin
         @frequencyInterval,
         @notifyOperator,
         1,
+		@notifyLevelEventlog,
         @overwriteExisting
     ) tv;
 
@@ -90,7 +92,7 @@ begin
 
 		exec  msdb.dbo.sp_add_job 
 				@job_name = @jobName
-				,@notify_level_eventlog = 0
+				,@notify_level_eventlog = @notifyLevelEventlog
 				,@notify_level_email = 2
 				,@owner_login_name = N'sa'
 				,@notify_email_operator_name = @notifyOperator

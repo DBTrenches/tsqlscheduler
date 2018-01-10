@@ -12,6 +12,7 @@ create table scheduler.Task
 	,IsEnabled bit not null constraint DF_Task_IsEnabled default (1)
 	,IsCachedRoleCheck bit not null constraint DF_Task_IsCachedRoleCheck default (1)
     ,IsDeleted bit not null constraint DF_IsDeleted default (0)
+	,NotifyLevelEventlog int constraint DF_NotifyLevelEventlog default (0)
 	,SysStartTime datetime2 generated always as row start not null
 	,SysEndTime datetime2 generated always as row end not NULL
 	,period for system_time (SysStartTime, SysEndTime)

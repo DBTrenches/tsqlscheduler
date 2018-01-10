@@ -85,7 +85,8 @@ exec scheduler.UpsertTask
     @startTime = '00:00', 
     @frequencyType = 3, 
     @frequencyInterval = 1, 
-    @notifyOperator = '$NotifyOperator', 
+    @notifyOperator = '$NotifyOperator',
+    @notifyLevelEventlog = 2, 
     @isNotifyOnFailure = 0,
     @overwriteExisting = 1;" # allow error-free redeploy of same AG after logical delete of local upsert job
 
@@ -112,6 +113,7 @@ exec scheduler.UpsertTask
     @frequencyType = 3, 
     @frequencyInterval = 1, 
     @notifyOperator = '$NotifyOperator', 
+    @notifyLevelEventlog = 2,
     @isNotifyOnFailure = 0,
     @overwriteExisting = 1;"
 
@@ -240,6 +242,7 @@ exec scheduler.UpsertTask
     @frequencyTypeDesc = @frequencyTypeDesc,
     @frequencyInterval = @frequencyInterval,
     @notifyOperator = @notifyOperator,
+    @notifyLevelEventlog = @notifyLevelEventlog,
     @isNotifyOnFailure = @isNotifyOnFailure,
     @isEnabled = @isEnabled,
     @isDeleted = @isDeleted,
@@ -260,6 +263,7 @@ exec scheduler.UpsertTask
     $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@FrequencyTypeDesc",[Data.SQLDBType]::VarChar,6))).value = $task.FrequencyTypeDesc
     $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@FrequencyInterval",[Data.SQLDBType]::SmallInt))).value = $task.FrequencyInterval
     $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@NotifyOperator",[Data.SQLDBType]::NVarChar,128))).value = $task.NotifyOnFailureOperator
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@notifyLevelEventlog",[Data.SQLDBType]::Int))).value = $task.NotifyLevelEventlog
     $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@IsNotifyOnFailure",[Data.SQLDBType]::Bit))).value = $task.IsNotifyOnFailure
     $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@IsEnabled",[Data.SQLDBType]::Bit))).value = $task.IsEnabled
     $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@IsDeleted",[Data.SQLDBType]::Bit))).value = $task.IsDeleted
