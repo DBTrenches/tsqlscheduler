@@ -25,6 +25,36 @@ Function Install-SchedulerSolution
     Write-Verbose ">>>>>>> $database"
     Write-Verbose "--------------------------------------------------------------------"
 
+    $dbFunction = @"
+create or alter function scheduler.GetDatabase()
+returns sysname
+as
+begin;
+    return '$database';
+end;
+"@
+    Invoke-SqlCmd -ServerInstance $server -Database $database -Query $dbFunction
+
+    if($versionBump){
+        [decimal]$version=(Invoke-Sqlcmd `
+            -ServerInstance $server `
+            -Database $database `
+            -Query "select [Version] from scheduler.GetVersion()").Version
+        
+# credit to https://stackoverflow.com/a/5429048/4709762
+        $ToNatural = { [regex]::Replace($_, '\d+', { $args[0].Value.PadLeft(20) }) }
+
+        gci ..\deploy\patchfiles -Directory | Where-Object {$_.Name -gt $version} | Sort-Object $ToNatural | % {
+            gci $_.FullName -Recurse | % {
+                $f=$_.FullName
+                $n=$_.Name
+                Write-Verbose "Stateful migration script found to bump from version '$version'"
+                Write-Verbose "Deploying patchfile [$n] to [$server].[$database]"
+                Invoke-Sqlcmd -ServerInstance $server -Database $database -InputFile "$f"
+            }
+        }
+    }
+    
     $files | foreach-object { 
         Write-Verbose $_.fileName
         Invoke-SqlCmd -ServerInstance $server -Database $database -InputFile $_.fileName 
@@ -55,7 +85,6 @@ Function Install-SchedulerSolution
 "@
         Invoke-SqlCmd -ServerInstance $server -Database $database -Query $availabilityGroupFunction
     }
-    
 }
 
 Function Install-AutoUpsertJob 
@@ -230,6 +259,24 @@ Function Publish-TaskFromConfig
         return
     }
 
+# Parse from config & set allowable attributes to default if missing
+    $taskIdentifier = $task.Identifier
+    $taskTSQLCommand = $task.TSQLCommand
+    $taskStartTime = $task.StartTime
+    $taskFrequencyTypeDesc = $task.FrequencyTypeDesc
+    $taskFrequencyInterval = $task.FrequencyInterval
+    $taskNotifyOnFailureOperator = $task.NotifyOnFailureOperator
+    $taskNotifyLevelEventlog = $task.NotifyLevelEventlog
+    $taskIsNotifyOnFailure = $task.IsNotifyOnFailure
+    $taskIsEnabled = $task.IsEnabled
+    $taskIsDeleted = $task.IsDeleted
+
+    #if($taskNotifyOnFailureOperator -eq $null){$taskNotifyOnFailureOperator = } # TODO: parse default from relevant config
+    if($taskNotifyLevelEventlog -eq $null){$taskNotifyLevelEventlog = 2} # write to windows event log
+    if($taskIsNotifyOnFailure -eq $null){$taskIsNotifyOnFailure = $true}
+    if($taskIsEnabled -eq $null){$taskIsEnabled = $false}
+    if($taskIsDeleted -eq $null){$taskIsDeleted = $true}
+
     Write-Verbose "Inputs passed preliminary validation. Attempting to publish task [$jobName] to [$server].[$database]."
 
 # Invoke-SQLCmd sucks for parameterization & Json is a text bomb so...
@@ -257,16 +304,16 @@ exec scheduler.UpsertTask
     $upsertTaskCmd.CommandText = $upsertTaskQuery
     
     $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@action",[Data.SQLDBType]::VarChar,6))).value = $action
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@jobIdentifier",[Data.SQLDBType]::NVarChar,128))).value = $task.Identifier
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@tsqlCommand",[Data.SQLDBType]::NVarChar,-1))).value = $task.TSQLCommand
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@StartTime",[Data.SQLDBType]::Time,5))).value = $task.StartTime
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@FrequencyTypeDesc",[Data.SQLDBType]::VarChar,6))).value = $task.FrequencyTypeDesc
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@FrequencyInterval",[Data.SQLDBType]::SmallInt))).value = $task.FrequencyInterval
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@NotifyOperator",[Data.SQLDBType]::NVarChar,128))).value = $task.NotifyOnFailureOperator
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@notifyLevelEventlog",[Data.SQLDBType]::Int))).value = $task.NotifyLevelEventlog
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@IsNotifyOnFailure",[Data.SQLDBType]::Bit))).value = $task.IsNotifyOnFailure
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@IsEnabled",[Data.SQLDBType]::Bit))).value = $task.IsEnabled
-    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@IsDeleted",[Data.SQLDBType]::Bit))).value = $task.IsDeleted
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@jobIdentifier",[Data.SQLDBType]::NVarChar,128))).value = $taskIdentifier
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@tsqlCommand",[Data.SQLDBType]::NVarChar,-1))).value = $taskTSQLCommand
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@StartTime",[Data.SQLDBType]::Time,5))).value = $taskStartTime
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@FrequencyTypeDesc",[Data.SQLDBType]::VarChar,6))).value = $taskFrequencyTypeDesc
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@FrequencyInterval",[Data.SQLDBType]::SmallInt))).value = $taskFrequencyInterval
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@NotifyOperator",[Data.SQLDBType]::NVarChar,128))).value = $taskNotifyOnFailureOperator
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@notifyLevelEventlog",[Data.SQLDBType]::Int))).value = $taskNotifyLevelEventlog
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@IsNotifyOnFailure",[Data.SQLDBType]::Bit))).value = $taskIsNotifyOnFailure
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@IsEnabled",[Data.SQLDBType]::Bit))).value = $taskIsEnabled
+    $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@IsDeleted",[Data.SQLDBType]::Bit))).value = $taskIsDeleted
     $upsertTaskCmd.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@overwriteExisting",[Data.SQLDBType]::Bit))).value = 1
 
     $upsertTaskCmd.Prepare()

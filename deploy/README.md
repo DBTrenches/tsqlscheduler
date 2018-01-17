@@ -37,7 +37,7 @@ In release 1.1, deployment occurs by executing powershell commands from the Modu
 - Deploy the UpdateReplicaStatus job against the AG solution
 
 ```powershell
-Import-Module .\Modules\tsqlscheduler
+Import-Module .\Modules\tsqlscheduler -Force
 
 # Deploy once in AG mode
 Install-SchedulerSolution -Server primaryNode -Database agDatabase -agMode $true -AvailabilityGroup AGName
@@ -73,7 +73,7 @@ Install-AutoUpsertJob -Server secondaryNode -Database Utility -TargetDatabase Ut
   - The notify operator must exist on the instance or the job will not be created.
 
 ```powershell
-Import-Module .\Modules\tsqlscheduler
+Import-Module .\Modules\tsqlscheduler -Force
 
 # Deploy in standalone mode
 Install-SchedulerSolution -Server primaryNode -Database Utility -agMode $false

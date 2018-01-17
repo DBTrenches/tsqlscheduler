@@ -65,7 +65,7 @@ Write-Host `n$message
 
 ..\deploy\testInput -agMode $agMode -agName $agName -server $server -notifyOperator $notifyOperator -database $database -agDatabase $agDatabase -replicas $replicas
 
-Import-Module .\Modules\tsqlScheduler
+Import-Module .\Modules\tsqlScheduler -Force
 
 if($globalErrorCount -eq 0) {
     $message = "All inputs passed validation. Deploying in 5 seconds...`n"
