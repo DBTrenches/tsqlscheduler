@@ -33,7 +33,14 @@ begin;
     return '$database';
 end;
 "@
-    Invoke-SqlCmd -ServerInstance $server -Database $database -Query $dbFunction
+# function is schema-bound by check constraint. skip re-deploy if already exists. but do check that it's valid
+    if((Invoke-SqlCmd -ServerInstance $server `
+        -Database $database `
+        -Query "select scheduler.GetDatabase() as dbf" `
+        -ErrorAction SilentlyContinue).dbf -ne $database)
+    {
+        Invoke-SqlCmd -ServerInstance $server -Database $database -Query $dbFunction
+    }
 
     if($versionBump){
         [decimal]$version=(Invoke-Sqlcmd `
