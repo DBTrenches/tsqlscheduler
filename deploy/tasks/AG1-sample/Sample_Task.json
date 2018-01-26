@@ -7,5 +7,6 @@
     "NotifyOnFailureOperator": "Test Operator",
     "IsNotifyOnFailure": true,
     "IsEnabled": false,
-    "IsDeleted": false
+    "IsDeleted": false,
+    "NotifyLevelEventlog": 2
 }
