@@ -110,7 +110,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='Daily frequency only supports an interval of 0 (once per day)', 
+                msg='Daily frequency only supports an interval of 0 (once per day)', -- TODO: refactor to make this intuitive
                 isValid=@NOT_VALID; 
         end
     
