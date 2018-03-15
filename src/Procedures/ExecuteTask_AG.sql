@@ -28,12 +28,16 @@ begin
 	end
 
 	declare @executionId int
+	                ,@startDateTime datetime2 (3) = getutcdate()
+			,@monthOfYear tinyint
 			,@command nvarchar(max)
 			,@isEnabled bit
 			,@isNotifyOnFailure bit
 			,@availabilityGroupName nvarchar(128)
 			,@isCachedRoleCheck bit;
-
+	
+        set  @monthOfYear = cast(month(@startDateTime) as tinyint)
+	
 	select	@command = t.TSQLCommand
 			,@isEnabled = t.IsEnabled
 			,@isNotifyOnFailure = t.IsNotifyOnFailure
@@ -67,9 +71,9 @@ begin
 	end
 
 	insert into scheduler.TaskExecution
-	( TaskId )
+	( TaskId, StartDateTime )
 	values
-	( @taskId );
+	( @taskId, @startDateTime );
 
 	select @executionId = scope_identity();
 
@@ -104,7 +108,7 @@ begin
 		set IsError = @isError
 			,ResultMessage = @resultMessage
 			,EndDateTime = getutcdate()
-	where ExecutionId = @executionId;
+	where ExecutionId = @executionId and MonthOfYear = @monthOfYear;
 
 	/* Throw here to allow agent to message the failure operator */
 	if @isError = 1 and @isNotifyOnFailure = 1
