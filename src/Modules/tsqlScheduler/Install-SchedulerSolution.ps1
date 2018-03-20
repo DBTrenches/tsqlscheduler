@@ -39,6 +39,7 @@ end;
         -Query "select scheduler.GetDatabase() as dbf" `
         -ErrorAction SilentlyContinue).dbf -ne $database)
     {
+        Invoke-SqlCmd -ServerInstance $server -Database $database -Query "create schema scheduler authorization dbo;"
         Invoke-SqlCmd -ServerInstance $server -Database $database -Query $dbFunction
     }
 
