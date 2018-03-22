@@ -15,5 +15,7 @@ cross apply openjson (i.ContextInfo, N'$')
         ,Taskid         int                 N'$.t'
         ,ExecutionId    int                 N'$.e'
     ) as tasks
+join scheduler.GetInstanceId() as iid
+on iid.Id = tasks.InstanceId
 where   r.context_info <> 0x
 and     isjson(i.ContextInfo) = 1
