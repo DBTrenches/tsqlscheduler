@@ -28,12 +28,12 @@
         Set-Content -LiteralPath $fName -Value $config 
     }
 
-    cd $folder
+    Set-Location $folder
 
     $allTasks = (Get-ChildItem)
     foreach($t in $allTasks){
         Publish-TaskFromConfig -config $t.Name -server $toServer -Database $toDatabase
     }
 
-    cd ..
+    Set-Location ..
 }
