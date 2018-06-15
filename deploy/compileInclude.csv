@@ -13,6 +13,7 @@ fileName,IsAGMode,IsStandaloneMode
 .\Tables\Task_Standalone.sql,FALSE,TRUE
 .\Procedures\ExecuteTask_Standalone.sql,FALSE,TRUE
 .\Tables\TaskExecution.sql,TRUE,TRUE
+.\Functions\GetTaskID.sql,TRUE,TRUE
 .\Functions\GetVersion.sql,TRUE,TRUE
 .\Procedures\CreateAgentJob.sql,TRUE,TRUE
 .\Procedures\CreateJobFromTask.sql,TRUE,TRUE
@@ -26,3 +27,5 @@ fileName,IsAGMode,IsStandaloneMode
 .\Procedures\DeleteTask.sql,TRUE,TRUE
 .\Procedures\UpdateTask.sql,TRUE,TRUE
 .\Procedures\UpsertTask.sql,TRUE,TRUE
+.\Procedures\DisableTask.sql,TRUE,TRUE
+.\Procedures\EnableTask.sql,TRUE,TRUE

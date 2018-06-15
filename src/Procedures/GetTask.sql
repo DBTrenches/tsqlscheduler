@@ -16,19 +16,8 @@ begin;
         @msg nvarchar(max),
         @taskId int;
     
-    if isnumeric(@task)=0
-    begin;
-        select @taskId = TaskId
-        from scheduler.Task 
-        where Identifier = @task;
-    end
-    else 
-    begin;
-        select @taskId = TaskId 
-        from scheduler.Task 
-        where TaskId = try_cast(@task as int);    
-    end;
-
+    select @taskId = TaskID
+    from scheduler.GetTaskID(@task,0);
 
     if @taskId is null
     begin;
