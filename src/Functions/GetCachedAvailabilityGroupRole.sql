@@ -10,7 +10,7 @@ begin
 	select 	@role = rs.AvailabilityGroupRole
 	from 	scheduler.ReplicaStatus as rs
 	where	rs.AvailabilityGroup = @availabilityGroupName
-	and		rs.HostName = host_name();
+	and		rs.HostName = @@servername;
 
 	return coalesce(@role, N'');
 end
