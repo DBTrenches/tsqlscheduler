@@ -3,12 +3,14 @@
 All non-informative/sample objects in this directory are ignored by default. You may clone your own repository to this location and provide a versioned history of tasks that may be more friendly to developers. The json config files for each task may be deployed to an installation using the following Powershell command
 
 ```powershell
-$configFile = "./AG1-sample/Sample_Task.json"
+$configFile = "./AG1-sample/Sample_Task.task.json"
 $srv = Server1
 $db = Utility
 
 Publish-TaskFromConfig -config $configFile -Server $srv -Database $db
 ```
+
+> The naming convetion for task files is `Identifier.task.json`.
 
 The config files can be generated from pre-existing rows in the database by querying the [`TaskConfig`](../../src/Views/TaskConfig.sql) view. However, extracting via this method will provide a one-line/non-prettified json blob. 
 
@@ -17,10 +19,10 @@ Managing your tasks in this way provides for simplified management of parity bet
 ```powershell
 $srv = "SQL-Dev-1"
 $db = "Utility"
-$tasks = Get-ChildItem | Select Name
+$tasks = Get-ChildItem -Filter *.task.json | Select Name
 
 foreach($t in $tasks){
-	Publish-TaskFromConfig -config $t.Name -server $srv -Database $db
+    Publish-TaskFromConfig -config $t.Name -server $srv -Database $db
 }
 ``` 
 
@@ -50,12 +52,12 @@ $allTasks = (Invoke-Sqlcmd -ServerInstance $srv -Database $db -Query $getTasksQ)
 
 foreach($t in $allTasks){
     $fName = $t.Identifier
-    $fName = "$fPath\$fName.json"
+    $fName = "$fPath\$fName.task.json"
     
     $config = $t.Config
 
 # the json comes out of the DB un-prettified, this helps  
-	$config= ($config | ConvertFrom-Json | ConvertTo-Json)
+    $config= ($config | ConvertFrom-Json | ConvertTo-Json)
 
     Set-Content -LiteralPath $fName -Value $config 
 }
@@ -65,10 +67,9 @@ Optionally you can also hard-delete old tasks. Do this only **after** publishing
 
 ```powershell
 # delete from disk tasks that have been deleted in DB
-$onDiskTasks = (gci $fPath -Filter "*.json")
+$onDiskTasks = (Get-ChildItem $fPath -Filter "*.json")
 
 $onDiskTasks | Where-Object {
-    ($_.Name).Replace(".json","") -notin $allTasks.Identifier
-} | rm
+    ($_.Name).Replace(".task.json","") -notin $allTasks.Identifier
+} | Remove-Item
 ```
-
