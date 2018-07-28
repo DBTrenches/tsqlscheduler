@@ -1,17 +1,17 @@
 create or alter function scheduler.GetCachedAvailabilityGroupRole
 (
-	@availabilityGroupName nvarchar(128)
+    @availabilityGroupName nvarchar(128)
 )
 returns nvarchar(60)
 as
 begin
-	declare @role nvarchar(60);
+    declare @role nvarchar(60);
 
-	select 	@role = rs.AvailabilityGroupRole
-	from 	scheduler.ReplicaStatus as rs
-	where	rs.AvailabilityGroup = @availabilityGroupName
-	and		rs.HostName = @@servername;
+    select 	@role = rs.AvailabilityGroupRole
+    from    scheduler.ReplicaStatus as rs
+    where   rs.AvailabilityGroup = @availabilityGroupName
+    and	    rs.HostName = @@servername;
 
-	return coalesce(@role, N'');
+    return coalesce(@role, N'');
 end
 go

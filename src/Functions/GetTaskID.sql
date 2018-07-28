@@ -14,6 +14,6 @@ return (
     select TaskID, Identifier
     from scheduler.Task
     where Identifier like '%'+@task+'%'
-        and @fuzzyMatch = 1
+    and @fuzzyMatch = 1
 );
 go

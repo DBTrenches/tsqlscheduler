@@ -53,7 +53,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='@tsqlCommand must be specified', 
+                msg='@tsqlCommand must be specified',
                 isValid=@NOT_VALID; 
         end
     
@@ -61,7 +61,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='@frequencyType must be specified', 
+                msg='@frequencyType must be specified',
                 isValid=@NOT_VALID; 
         end
     
@@ -69,7 +69,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='@frequencyInterval must be specified', 
+                msg='@frequencyInterval must be specified',
                 isValid=@NOT_VALID; 
         end
     
@@ -77,7 +77,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='@startTime must be specified', 
+                msg='@startTime must be specified',
                 isValid=@NOT_VALID; 
         end
     
@@ -85,7 +85,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='@notifyOperator must be specified', 
+                msg='@notifyOperator must be specified',
                 isValid=@NOT_VALID; 
         end
     end
@@ -126,7 +126,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='Hourly frequency requires an interval between 1 and 23', 
+                msg='Hourly frequency requires an interval between 1 and 23',
                 isValid=@NOT_VALID; 
         end
     
@@ -134,7 +134,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='Minute frequency requires an interval between 1 and 3599 (1 minute to 1 day)', 
+                msg='Minute frequency requires an interval between 1 and 3599 (1 minute to 1 day)',
                 isValid=@NOT_VALID; 
         end
     
@@ -142,7 +142,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='Second frequency requires an interval between 1 and 3599 (1 second to 1 hour)', 
+                msg='Second frequency requires an interval between 1 and 3599 (1 second to 1 hour)',
                 isValid=@NOT_VALID; 
         end
     
@@ -156,8 +156,8 @@ begin
         begin;
             insert @taskAttributes ( msg, isValid )
             select 
-                msg=formatmessage('Specified task name of [%s] already exists',@jobIdentifier), 
-                isValid=@overwriteExisting; -- not an error for overwrite            
+                msg=formatmessage('Specified task name of [%s] already exists',@jobIdentifier),
+                isValid=@overwriteExisting; -- not an error for overwrite
         end;
 
         declare @existingJobId uniqueidentifier;
@@ -169,7 +169,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg=formatmessage('Specified job name of [%s] already exists',@jobIdentifier), 
+                msg=formatmessage('Specified job name of [%s] already exists',@jobIdentifier),
                 isValid=@overwriteExisting; -- not an error for overwrite
         end
     
@@ -181,7 +181,7 @@ begin
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg=formatmessage('Specified @notifyOperator name [%s] does not exist',@notifyOperator), 
+                msg=formatmessage('Specified @notifyOperator name [%s] does not exist',@notifyOperator),
                 isValid=@NOT_VALID;
         end
     
