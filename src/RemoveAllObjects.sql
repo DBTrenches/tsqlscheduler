@@ -51,6 +51,9 @@ where o.[type] in (N'FN',N'IF',N'TF')
 exec sp_executesql @dropFun;
 go
 
+/*** PARTITION SCHEME ***/
+drop partition scheme PS_RingBufferByMonthOfYear;
+
 /*** SCHEMA ***/
 drop schema if exists scheduler;
 go
