@@ -15,27 +15,13 @@ This is intended as an administrative tool and as such requires and will schedul
 
 ## Installation
 
-### Availability Group Mode
+See the dedicated [deployment instructions](deploy/README.md).
 
-- Clone the repository
-- Open a powershell session and change to the `src` folder
-- Execute `..\deploy\deploy "HA"` followed by the name of your AG
-
-A config file for your AG is required. This file should be located in the [deploy/servers](deploy/servers) directory with the naming convention `agName.json` and should be of [this form](deploy/servers/AG1-sample.json) (for an AG with a name of `AG1-sample`). The deploy script will attempt to auto-create a config file in the event one is not found, although you will need to manually enter some information. 
-
-### Standalone (Instance) Mode
-
-While the Scheduler is developed for use in an AG environment, it is possible to administer your Server Agent in a single-instance environment as well.  
-
-- Clone the repository
-- Open a powershell session and change to the `src` folder
-- Execute `..\deploy\deploy "Single Instance"` 
-
-Jump to: [Removing the Scheduler](deploy/README.md#uninstallation)
+See also [Removing the Scheduler](deploy/README.md#uninstallation)
 
 ## Notes and Requirements
 
-- SQL 2016 is required
+- SQL 2016+ is required (tested on 2016, 2017)
 - [The server time must be UTC](#server-time)
 - The replica must be configured as a [readable secondary][readable-secondary] 
 - All requisite DBs must be created and added to the AG as necessary before installation.  

@@ -18,6 +18,5 @@ create table scheduler.Task
   ,constraint PK_Task primary key clustered (TaskId) with (data_compression = page)
   ,constraint UQ_Task_Name unique nonclustered (Identifier) with (data_compression = page)
   ,constraint CK_FrequencyInterval CHECK ((FrequencyType=1 AND FrequencyInterval=0) OR (FrequencyType IN (2,3,4) AND FrequencyInterval>0))
-  ,constraint chk_Task_JobNamePrefacedByLocalDB check (substring(Identifier,(1),len(scheduler.GetDatabase()))=scheduler.GetDatabase())
 ) with (system_versioning = on (history_table = scheduler.TaskHistory))
 GO
