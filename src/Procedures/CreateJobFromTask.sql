@@ -1,15 +1,14 @@
 create or alter procedure scheduler.CreateJobFromTask
-  @taskId int = null
-  ,@identifier nvarchar(128) = null
+  @taskUid uniqueidentifier = null
   ,@overwriteExisting bit = 0
 as
 begin
   set xact_abort on;
   set nocount on;
 
-  if (@taskId is null and @identifier is null) or (@taskId is not null and @identifier is not null)
+  if (@taskUid is null)
   begin
-    ;throw 50000, 'Only one of @taskId or @identifier must be specified', 1;
+    ;throw 50000, '@taskUid must be specified', 1;
   end
 
   if @overwriteExisting is null
@@ -17,17 +16,10 @@ begin
     ;throw 50000, '@overwriteExisting cannot be null', 1;
   end
 
-  if @taskId is null
-  begin
-    select @taskId = t.TaskId
-    from scheduler.Task as t
-    where t.Identifier = @identifier;
-  end
-
   if not exists (
     select 1
     from scheduler.Task as t
-    where t.TaskId = @taskId
+    where t.TaskUid = @taskUid
   )
   begin
     ;throw 50000, 'Specified Task does not exist', 1;
@@ -41,23 +33,30 @@ begin
       ,@notifyOperator nvarchar(128)
       ,@description nvarchar(max)
       ,@notifyLevelEventlog int 
-  declare @db nvarchar(max) = db_name(db_id());
+      ,@db nvarchar(max) = db_name();
 
-  set @description = 'Created from task ' + cast(@taskId as varchar(12)) + ' in database ' + @db;
-  
-  select	@jobName = t.Identifier
+  select  @jobName = concat_ws('-',@db,t.Identifier)
       ,@frequencyType = t.FrequencyTypeDesc
       ,@frequencyInterval = t.FrequencyInterval
       ,@startTime = t.StartTime
       ,@notifyOperator = t.NotifyOnFailureOperator
       ,@notifyLevelEventlog=t.NotifyLevelEventlog
-  from	scheduler.Task as t
-  where	t.TaskId = @taskId;
+      ,@taskUid = t.TaskUid
+  from  scheduler.Task as t
+  where	t.taskUid = @taskUid;
+
+  set @description = (select @db as db
+    ,id.Id as instanceId
+    ,@taskUid as taskUid
+    ,getutcdate() as updateCreateDate
+  from  scheduler.GetInstanceId() as id
+  for json path, without_array_wrapper)
   
-  set @command = 'exec ' + @db + '.scheduler.ExecuteTask @taskId = ' + cast(@taskId as varchar(12)) + ';';
+  set @command = 'exec ' + @db + '.scheduler.ExecuteTask @taskUid = ' + cast(@taskUid as varchar(36)) + ';';
 
   exec scheduler.CreateAgentJob
-      @jobName = @jobName
+      @taskUid = @taskUid
+      ,@jobName = @jobName
       ,@stepName = @jobName
       ,@command = @command
       ,@frequencyType = @frequencyType

@@ -2,8 +2,8 @@ create or alter  procedure scheduler.TaskExecutionRotate
     @monthsToKeep INT = 3
 as
 begin
-	  set xact_abort on;
-	  set nocount on;
+      set xact_abort on;
+      set nocount on;
 
     declare @now datetime2 (3) = getutcdate()
                   ,@months int=12

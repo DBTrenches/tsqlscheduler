@@ -1,6 +1,6 @@
 
 create or alter function scheduler.ValidateTaskProfile (
-    @taskId                 int,
+    @taskUid                uniqueidentifier,
     @jobIdentifier          sysname,
     @tsqlCommand            nvarchar(max),
     @startTime              time,
@@ -12,7 +12,7 @@ create or alter function scheduler.ValidateTaskProfile (
     @overwriteExisting      bit = 0
 )
 returns @IsTaskValid table (
-    taskId                  int,
+    taskUid                 uniqueidentifier,
     Identifier              sysname,
     IsValidTask             bit not null,
     Comments                nvarchar(max),
@@ -41,6 +41,14 @@ begin
 
         /* Validate parameters for basic correctness */
     begin
+        if @taskUid is null
+        begin
+            insert @taskAttributes ( msg, isValid )
+            select 
+                msg='@taskUid must be specified', 
+                isValid=@NOT_VALID; 
+        end;
+
         if @jobIdentifier is null
         begin
             insert @taskAttributes ( msg, isValid )
@@ -161,9 +169,17 @@ begin
         end;
 
         declare @existingJobId uniqueidentifier;
-        select @existingJobId = s.job_id
-        from msdb.dbo.sysjobs as s
-        where s.[name] = @jobIdentifier;
+        select @existingJobId = j.job_id
+        from msdb.dbo.sysjobs as j
+        cross apply openjson (j.description, N'$')
+            with (
+                InstanceId      uniqueidentifier    N'$.instanceId'
+                ,TaskUid        uniqueidentifier    N'$.taskUid'
+            ) as jobInfo
+        cross apply scheduler.GetInstanceId() as iid
+        where isjson(j.description) = 1
+        and jobInfo.InstanceId = iid.id
+        and jobInfo.TaskUid = @taskUid
     
         if @existingJobId is not null
         begin
@@ -202,7 +218,7 @@ begin
     from err;
 
     insert @IsTaskValid ( 
-        taskId,
+        taskUid,
         Identifier,
         IsValidTask,
         Comments,
@@ -216,7 +232,7 @@ begin
         NotifyLevelEventlog,
         ExistingJobID )
     values ( 
-        @taskId, 
+        @taskUid, 
         @jobIdentifier, 
         @IsValidTask, 
         @ErrorMsg, 

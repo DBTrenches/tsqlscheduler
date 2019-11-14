@@ -1,5 +1,6 @@
 create or alter procedure scheduler.CreateAgentJob
-  @jobName nvarchar(128)
+  @taskUid uniqueidentifier
+  ,@jobName nvarchar(128)
   ,@stepName sysname
   ,@command nvarchar(max)
   ,@frequencyType varchar(6)
@@ -32,7 +33,7 @@ begin
         @Comments = tv.Comments,
         @existingJobId = tv.ExistingJobID
     from scheduler.ValidateTaskProfile (
-        null,
+        @taskUid,
         @jobName,
         @command,
         @startTime,
@@ -83,20 +84,13 @@ begin
         ,@currentDate nvarchar(128) = convert(nvarchar(128),getutcdate(), 20)
         ,@crlf char(2) = char(13) + char(10);
 
-    declare @jobDescription nvarchar(max) = formatmessage('Created with CreateAgentJob%sUser:%s%sHost:%s%sApplication:%s%sTime:%s', @crlf, @currentUser, @crlf, @currentHost, @crlf, @currentApplication, @crlf, @currentDate);
-
-    if @description is not null
-    begin
-      set @jobDescription = @jobDescription + @crlf + 'Info:' + @description
-    end
-
     exec  msdb.dbo.sp_add_job 
         @job_name = @jobName
         ,@notify_level_eventlog = @notifyLevelEventlog
         ,@notify_level_email = 2
         ,@owner_login_name = N'sa'
         ,@notify_email_operator_name = @notifyOperator
-        ,@description = @jobDescription;
+        ,@description = @description;
 
     /* Add the TSQL job step, homed in the master database */
     EXEC msdb.dbo.sp_add_jobstep 

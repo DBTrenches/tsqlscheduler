@@ -2,10 +2,10 @@
 create or alter view scheduler.TaskConfig 
 as
 select  
-    TaskId,
+    TaskUid,
     Identifier,
     (select 
-        TaskId,
+        TaskUid,
         Identifier,
         TSQLCommand,
         StartTime,
@@ -16,7 +16,7 @@ select
         IsNotifyOnFailure,
         IsEnabled,
         IsDeleted,
-		NotifyLevelEventlog,
+        NotifyLevelEventlog,
         SysStartTime,
         SysEndTime 
     for json path, without_array_wrapper) as Config

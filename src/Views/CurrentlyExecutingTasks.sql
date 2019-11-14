@@ -2,7 +2,7 @@ create or alter view scheduler.CurrentlyExecutingTasks
 as
 
 select      tasks.InstanceId
-            ,tasks.TaskId
+            ,tasks.TaskUid
             ,tasks.ExecutionId
             ,r.session_id
 from        sys.dm_exec_requests as r
@@ -12,7 +12,7 @@ cross apply (
 cross apply openjson (i.ContextInfo, N'$')
     with (
         InstanceId      uniqueidentifier    N'$.i'
-        ,Taskid         int                 N'$.t'
+        ,TaskUid        uniqueidentifier    N'$.t'
         ,ExecutionId    int                 N'$.e'
     ) as tasks
 join scheduler.GetInstanceId() as iid

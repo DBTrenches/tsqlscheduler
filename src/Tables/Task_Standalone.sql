@@ -1,6 +1,6 @@
 create table scheduler.Task
 (
-  TaskId int identity(1,1) not null
+  TaskUid uniqueidentifier not null
   ,Identifier nvarchar(128) not null
   ,TSQLCommand nvarchar(max) not null
   ,StartTime time not null
@@ -15,7 +15,7 @@ create table scheduler.Task
   ,SysStartTime datetime2 generated always as row start not null
   ,SysEndTime datetime2 generated always as row end not NULL
   ,period for system_time (SysStartTime, SysEndTime)
-  ,constraint PK_Task primary key clustered (TaskId) with (data_compression = page)
+  ,constraint PK_Task primary key clustered (TaskUid) with (data_compression = page)
   ,constraint UQ_Task_Name unique nonclustered (Identifier) with (data_compression = page)
   ,constraint CK_FrequencyInterval CHECK ((FrequencyType=1 AND FrequencyInterval=0) OR (FrequencyType IN (2,3,4) AND FrequencyInterval>0))
 ) with (system_versioning = on (history_table = scheduler.TaskHistory))
