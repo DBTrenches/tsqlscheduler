@@ -9,8 +9,7 @@ select
         Identifier,
         TSQLCommand,
         StartTime,
-        FrequencyType,
-        FrequencyTypeDesc,
+        Frequency
         FrequencyInterval,
         NotifyOnFailureOperator,
         IsNotifyOnFailure,

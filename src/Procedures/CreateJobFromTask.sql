@@ -27,7 +27,7 @@ begin
 
   declare @jobName nvarchar(128)
       ,@command nvarchar(max)
-      ,@frequencyType varchar(6)
+      ,@frequency varchar(6)
       ,@frequencyInterval tinyint
       ,@startTime time
       ,@notifyOperator nvarchar(128)
@@ -36,7 +36,7 @@ begin
       ,@db nvarchar(max) = db_name();
 
   select  @jobName = concat_ws('-',@db,t.Identifier)
-      ,@frequencyType = t.FrequencyTypeDesc
+      ,@frequency = t.Frequency
       ,@frequencyInterval = t.FrequencyInterval
       ,@startTime = t.StartTime
       ,@notifyOperator = t.NotifyOnFailureOperator
@@ -59,7 +59,7 @@ begin
       ,@jobName = @jobName
       ,@stepName = @jobName
       ,@command = @command
-      ,@frequencyType = @frequencyType
+      ,@frequency = @frequency
       ,@frequencyInterval = @frequencyInterval
       ,@startTime = @startTime
       ,@notifyOperator = @notifyOperator

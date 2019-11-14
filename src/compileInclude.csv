@@ -1,8 +1,6 @@
 fileName,IsAGMode,IsStandaloneMode
 .\Schema\scheduler.sql,TRUE,TRUE
 .\Views\AgentJobsForCurrentInstance.sql,TRUE,TRUE
-.\Functions\FrequencyTypeFromDesc.sql,TRUE,TRUE
-.\Functions\FrequencyDescFromType.sql,TRUE,TRUE
 .\Functions\ValidateTaskProfile.sql,TRUE,TRUE
 .\Tables\Task_AG.sql,TRUE,FALSE
 .\Tables\ReplicaStatus.sql,TRUE,FALSE

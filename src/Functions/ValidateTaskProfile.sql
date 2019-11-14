@@ -4,7 +4,7 @@ create or alter function scheduler.ValidateTaskProfile (
     @jobIdentifier          sysname,
     @tsqlCommand            nvarchar(max),
     @startTime              time,
-    @frequencyType          tinyint,
+    @frequency              varchar(6),
     @frequencyInterval      smallint,
     @notifyOperator         sysname,
     @isNotifyOnFailure      bit,
@@ -18,8 +18,7 @@ returns @IsTaskValid table (
     Comments                nvarchar(max),
     TSQLCommand             nvarchar(max),
     StartTime               time,
-    FrequencyType           tinyint,
-    FrequencyTypeDesc       varchar(6),
+    Frequency               varchar(6),
     FrequencyInterval       smallint,
     NotifyOnFailureOperator nvarchar(128),
     IsNotifyOnFailure       bit,
@@ -35,9 +34,6 @@ begin
         msg nvarchar(max) not null,
         isValid bit not null
     );
-
-    declare @frequencyTypeDesc varchar(6);
-    select @frequencyTypeDesc = scheduler.FrequencyDescFromType( @frequencyType );
 
         /* Validate parameters for basic correctness */
     begin
@@ -65,11 +61,11 @@ begin
                 isValid=@NOT_VALID; 
         end
     
-        if @frequencyType is null
+        if @frequency is null
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg='@frequencyType must be specified',
+                msg='@frequency must be specified',
                 isValid=@NOT_VALID; 
         end
     
@@ -105,16 +101,15 @@ begin
             ,@FREQUENCY_MINUTE varchar(6) = 'minute'
             ,@FREQUENCY_SECOND varchar(6) = 'second'
     
-        if @frequencyTypeDesc not in (@FREQUENCY_DAY, @FREQUENCY_HOUR, @FREQUENCY_MINUTE, @FREQUENCY_SECOND)
-            or @frequencyTypeDesc is null
+        if @frequency not in (@FREQUENCY_DAY, @FREQUENCY_HOUR, @FREQUENCY_MINUTE, @FREQUENCY_SECOND)
         begin
             insert @taskAttributes ( msg, isValid )
             select 
-                msg=formatmessage('@frequencyType/desc of [%i]/[%s] is invalid - must be one of: day, hour, minute, second',@frequencyType,@frequencyTypeDesc), 
+                msg=formatmessage('@frequency of [%s] is invalid - must be one of: day, hour, minute, second',@frequency), 
                 isValid=@NOT_VALID; 
         end
     
-        if @frequencyTypeDesc = @FREQUENCY_DAY and @frequencyInterval <> 0
+        if @frequency = @FREQUENCY_DAY and @frequencyInterval <> 0
         begin
             insert @taskAttributes ( msg, isValid )
             select 
@@ -122,7 +117,7 @@ begin
                 isValid=@NOT_VALID; 
         end
     
-        if @frequencyTypeDesc = @FREQUENCY_HOUR and @frequencyInterval > 23
+        if @frequency = @FREQUENCY_HOUR and @frequencyInterval > 23
         begin
             insert @taskAttributes ( msg, isValid )
             select 
@@ -130,7 +125,7 @@ begin
                 isValid=@NOT_VALID; 
         end
     
-        if @frequencyTypeDesc = @FREQUENCY_HOUR and not @frequencyInterval between 1 and 23
+        if @frequency = @FREQUENCY_HOUR and not @frequencyInterval between 1 and 23
         begin
             insert @taskAttributes ( msg, isValid )
             select 
@@ -138,7 +133,7 @@ begin
                 isValid=@NOT_VALID; 
         end
     
-        if @frequencyTypeDesc = @FREQUENCY_MINUTE and not @frequencyInterval between 1 and 3599
+        if @frequency = @FREQUENCY_MINUTE and not @frequencyInterval between 1 and 3599
         begin
             insert @taskAttributes ( msg, isValid )
             select 
@@ -146,7 +141,7 @@ begin
                 isValid=@NOT_VALID; 
         end
     
-        if @frequencyTypeDesc = @FREQUENCY_SECOND and not @frequencyInterval between 1 and 3599
+        if @frequency = @FREQUENCY_SECOND and not @frequencyInterval between 1 and 3599
         begin
             insert @taskAttributes ( msg, isValid )
             select 
@@ -216,8 +211,7 @@ begin
         Comments,
         TSQLCommand,
         StartTime,
-        FrequencyType,
-        FrequencyTypeDesc,
+        Frequency,
         FrequencyInterval,
         NotifyOnFailureOperator,
         IsNotifyOnFailure,
@@ -230,8 +224,7 @@ begin
         @ErrorMsg, 
         @tsqlCommand, 
         @startTime, 
-        @frequencyType, 
-        @frequencyTypeDesc,
+        @frequency,
         @frequencyInterval, 
         @notifyOperator, 
         @isNotifyOnFailure,

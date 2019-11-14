@@ -3,7 +3,7 @@ create or alter procedure scheduler.CreateAgentJob
   ,@jobName nvarchar(128)
   ,@stepName sysname
   ,@command nvarchar(max)
-  ,@frequencyType varchar(6)
+  ,@frequency varchar(6)
   ,@frequencyInterval tinyint /* Ignored for day, every N for Hour/Minute */
   ,@startTime time
   ,@notifyOperator nvarchar(128)
@@ -22,7 +22,6 @@ begin
     ,@ACTIVE_START_DATE int = datepart(year,getutcdate()) * 10000 + datepart(month,getutcdate()) * 100 + datepart(day,getutcdate());
 
     declare 
-        @frequencyTypeNum tinyint = scheduler.FrequencyTypeFromDesc( @frequencyType ),
         @IsValidTask bit = 1,
         @Comments nvarchar(max),
         @ErrorMsg nvarchar(max) = N'',
@@ -37,7 +36,7 @@ begin
         @jobName,
         @command,
         @startTime,
-        @frequencyTypeNum,
+        @frequency,
         @frequencyInterval,
         @notifyOperator,
         1,
@@ -108,7 +107,7 @@ begin
     declare @freq_subday_type int
         ,@active_start_time int;
 
-    set @freq_subday_type = case @frequencyType
+    set @freq_subday_type = case @frequency
                   when @FREQUENCY_DAY then 1
                   when @FREQUENCY_SECOND then 2
                   when @FREQUENCY_HOUR then 8
