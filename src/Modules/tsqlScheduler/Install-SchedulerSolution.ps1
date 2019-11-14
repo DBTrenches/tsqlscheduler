@@ -1,14 +1,13 @@
-﻿Function Install-SchedulerSolution 
-{
+﻿Function Install-SchedulerSolution {
     [cmdletbinding()]
     Param (
         [string] $server
-        ,[string] $database
-        ,[boolean] $agMode = $false
-        ,[string] $availabilityGroup
+        , [string] $database
+        , [boolean] $agMode = $false
+        , [string] $availabilityGroup
     )
 
-    $deployMode = if($agMode){"IsAGMode"}else{"IsStandaloneMode"}
+    $deployMode = if ($agMode) { "IsAGMode" }else { "IsStandaloneMode" }
     $compileInclude = Import-Csv $PSScriptRoot\..\..\compileInclude.csv
 
     $files += $compileInclude | Where-Object { $_."$deployMode" -match $true } 
@@ -39,8 +38,7 @@
         Invoke-SqlCmd -ServerInstance $server -Database $database -InputFile "$PSScriptRoot\..\..\$($_.fileName)" 
     }
 
-    if($agMode)
-    {
+    if ($agMode) {
         $availabilityGroupFunction = @"
         create or alter function scheduler.GetAvailabilityGroup()
         returns table
