@@ -8,28 +8,38 @@
         ,[string] $NotifyOperator
     )
 
-    # conform to naming convention of $ownLocation-$target-$task
-    # but do not double-prefix self-reference/standalone AutUpsert jobs
-    if($Database -eq $TargetDatabase){
-        $prefix = $TargetDatabase
-    }else{
-        $prefix = $Database + "-" + $TargetDatabase
-    }
+    $jobIdentifier = "$TargetDatabase-UpsertJobsForAllTasks"
+    $command = "exec $TargetDatabase.scheduler.UpsertJobsForAllTasks;"
+    $taskUid = [Guid]::NewGuid().ToString()
 
-    $jobIdentifier = $prefix + "-UpsertJobsForAllTasks"
     $query = "
-exec scheduler.UpsertTask
-    @action = 'INSERT', 
-    @jobIdentifier = '$jobIdentifier', 
-    @tsqlCommand = N'exec $TargetDatabase.scheduler.UpsertJobsForAllTasks;', 
-    @startTime = '00:00', 
-    @frequencyType = 3, 
-    @frequencyInterval = 1, 
-    @notifyOperator = '$NotifyOperator',
-    @notifyLevelEventlog = 2, 
-    @isNotifyOnFailure = 0,
-    @overwriteExisting = 1;" # allow error-free redeploy of same AG after logical delete of local upsert job
-
+insert into scheduler.Task
+(
+    TaskUid
+    ,Identifier
+    ,TSQLCommand
+    ,StartTime
+    ,Frequency
+    ,FrequencyInterval
+    ,NotifyOnFailureOperator
+    ,NotifyLevelEventLog 
+    ,IsNotifyOnFailure
+    ,IsEnabled
+)
+values
+(
+    '$taskUid'
+    ,'$jobIdentifier'
+    ,N'$command'
+    ,'00:00'
+    ,'Minute'
+    ,1
+    ,'$NotifyOperator'
+    ,2
+    ,0
+    ,1
+)
+"
     Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query $query
-    Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query "exec scheduler.CreateJobFromTask @identifier = '$jobIdentifier', @overwriteExisting = 1;"
+    Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query "exec scheduler.CreateJobFromTask @taskUid = '$taskUid', @overwriteExisting = 1;"
 }

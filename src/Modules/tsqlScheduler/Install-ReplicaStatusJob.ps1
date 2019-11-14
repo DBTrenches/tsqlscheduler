@@ -7,20 +7,41 @@
         ,[string] $NotifyOperator
     )
 
-    $jobIdentifier = $Database + "-RecordReplicaStatus"
+    $jobIdentifier = "RecordReplicaStatus"
+    $command = "exec $Database.scheduler.UpdateReplicaStatus"
+    $taskUid = [Guid]::NewGuid().ToString()
+
     $query = "
-exec scheduler.UpsertTask
-    @action = 'INSERT', 
-    @jobIdentifier = '$jobIdentifier', 
-    @tsqlCommand = N'exec $Database.scheduler.UpdateReplicaStatus;', 
-    @startTime = '00:00', 
-    @frequencyType = 3, 
-    @frequencyInterval = 1, 
-    @notifyOperator = '$NotifyOperator', 
-    @notifyLevelEventlog = 2,
-    @isNotifyOnFailure = 0,
-    @overwriteExisting = 1;"
+insert into scheduler.Task
+(
+    TaskUid
+    ,Identifier
+    ,TSQLCommand
+    ,StartTime
+    ,Frequency
+    ,FrequencyInterval
+    ,NotifyOnFailureOperator
+    ,NotifyLevelEventLog 
+    ,IsNotifyOnFailure
+    ,IsEnabled
+    ,IsCachedRoleCheck
+)
+values
+(
+    '$taskUid'
+    ,'$jobIdentifier'
+    ,N'$command'
+    ,'00:00'
+    ,'Minute'
+    ,1
+    ,'$NotifyOperator'
+    ,2
+    ,0
+    ,1
+    ,0
+)
+"
 
     Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query $query
-    Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query "exec scheduler.CreateJobFromTask @identifier = '$jobIdentifier', @overwriteExisting = 1;"
+    Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query "exec scheduler.CreateJobFromTask @taskUid = '$taskUid', @overwriteExisting = 1;"
 }
