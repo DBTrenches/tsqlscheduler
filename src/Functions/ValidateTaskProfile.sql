@@ -170,16 +170,8 @@ begin
 
         declare @existingJobId uniqueidentifier;
         select @existingJobId = j.job_id
-        from msdb.dbo.sysjobs as j
-        cross apply openjson (j.description, N'$')
-            with (
-                InstanceId      uniqueidentifier    N'$.instanceId'
-                ,TaskUid        uniqueidentifier    N'$.taskUid'
-            ) as jobInfo
-        cross apply scheduler.GetInstanceId() as iid
-        where isjson(j.description) = 1
-        and jobInfo.InstanceId = iid.id
-        and jobInfo.TaskUid = @taskUid
+        from scheduler.AgentJobsForCurrentInstance as j
+        where j.TaskUid = @taskUid
     
         if @existingJobId is not null
         begin
