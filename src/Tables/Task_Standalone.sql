@@ -1,6 +1,6 @@
 create table scheduler.Task
 (
-  TaskUid uniqueidentifier not null
+  TaskUid uniqueidentifier not null constraint DF_Task_TaskUid default (newid())
   ,Identifier nvarchar(128) not null
   ,TSQLCommand nvarchar(max) not null
   ,StartTime time not null
