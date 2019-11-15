@@ -41,6 +41,10 @@ begin
       exec scheduler.CreateJobFromTask @taskUid = @taskUid, @overwriteExisting = 1;
     end try
     begin catch
+      if xact_state() in (-1,1)
+      begin
+        rollback tran;
+      end
       /* Swallow error - we don't want to take out the whole run if a single task fails to create */
     end catch
     set @id += 1;
@@ -50,7 +54,7 @@ begin
   drop table if exists #DeleteWork;
   create table #DeleteWork
   (
-    Id	int not null identity(1, 1) primary key,
+    Id  int not null identity(1, 1) primary key,
     TaskUid uniqueidentifier not null
   );
 
@@ -78,6 +82,10 @@ begin
       exec scheduler.RemoveJobFromTask @taskUid = @taskUid;
     end try
     begin catch
+      if xact_state() in (-1,1)
+      begin
+        rollback tran;
+      end
       /* Swallow error - we don't want to take out the whole run if a single task fails to create */
     end catch
     set @id += 1;
