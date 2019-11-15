@@ -19,4 +19,3 @@ fileName,IsAGMode,IsStandaloneMode
 .\Procedures\RemoveJobFromTask.sql,TRUE,TRUE
 .\Procedures\UpsertJobsForAllTasks.sql,TRUE,TRUE
 .\Views\CurrentlyExecutingTasks.sql,TRUE,TRUE
-.\Views\TaskConfig.sql,TRUE,TRUE
