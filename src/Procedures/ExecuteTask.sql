@@ -24,6 +24,7 @@ begin
       ,@monthOfYear tinyint
       ,@command nvarchar(max)
       ,@isEnabled bit
+      ,@isDeleted bit
       ,@isNotifyOnFailure bit
       ,@isSchedulerDatabaseWriteable bit;
   
