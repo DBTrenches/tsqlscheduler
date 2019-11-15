@@ -8,7 +8,7 @@ create or alter function scheduler.ValidateTaskProfile (
     @frequencyInterval      smallint,
     @notifyOperator         sysname,
     @isNotifyOnFailure      bit,
-    @notifyLevelEventlog    int = 2,
+    @notifyLevelEventlog    varchar(9),
     @overwriteExisting      bit = 0
 )
 returns @IsTaskValid table (
@@ -22,7 +22,7 @@ returns @IsTaskValid table (
     FrequencyInterval       smallint,
     NotifyOnFailureOperator nvarchar(128),
     IsNotifyOnFailure       bit,
-    NotifyLevelEventlog		int,
+    NotifyLevelEventlog     varchar(9),
     ExistingJobID           uniqueidentifier
 )
 as
@@ -90,6 +90,16 @@ begin
             insert @taskAttributes ( msg, isValid )
             select 
                 msg='@notifyOperator must be specified',
+                isValid=@NOT_VALID; 
+        end
+
+        if @notifyLevelEventlog not in (
+            'Never', 'OnSuccess', 'OnFailure', 'Always'
+        ) or @notifyLevelEventlog is null
+        begin
+            insert @taskAttributes ( msg, isValid )
+            select 
+                msg='@notifyLevelEventlog must be one of Never, OnSuccess, OnFailure, Always',
                 isValid=@NOT_VALID; 
         end
     end

@@ -32,7 +32,7 @@ begin
       ,@startTime time
       ,@notifyOperator nvarchar(128)
       ,@description nvarchar(max)
-      ,@notifyLevelEventlog int 
+      ,@notifyLevelEventlog varchar(9) 
       ,@db nvarchar(max) = db_name();
 
   select  @jobName = concat_ws('-',@db,t.Identifier)

@@ -7,7 +7,7 @@ create or alter procedure scheduler.CreateAgentJob
   ,@frequencyInterval tinyint /* Ignored for day, every N for Hour/Minute */
   ,@startTime time
   ,@notifyOperator nvarchar(128)
-  ,@notifyLevelEventlog int=2
+  ,@notifyLevelEventlog varchar(9)
   ,@overwriteExisting bit = 0
   ,@description nvarchar(max) = null
 as
@@ -40,7 +40,7 @@ begin
         @frequencyInterval,
         @notifyOperator,
         1,
-    @notifyLevelEventlog,
+        @notifyLevelEventlog,
         @overwriteExisting
     ) tv;
 
@@ -81,11 +81,21 @@ begin
         ,@currentHost nvarchar(128) = host_name()
         ,@currentApplication nvarchar(128) = app_name()
         ,@currentDate nvarchar(128) = convert(nvarchar(128),getutcdate(), 20)
-        ,@crlf char(2) = char(13) + char(10);
+        ,@crlf char(2) = char(13) + char(10)
+        ,@notify_level_eventlog int;
+
+    set @notify_level_eventlog = case @notifyLevelEventlog
+      when 'Never' then 0
+      when 'OnSuccess' then 1
+      when 'OnFailure' then 2
+      when 'Always' then 3
+      else 2
+    end
+
 
     exec  msdb.dbo.sp_add_job 
         @job_name = @jobName
-        ,@notify_level_eventlog = @notifyLevelEventlog
+        ,@notify_level_eventlog = @notify_level_eventlog
         ,@notify_level_email = 2
         ,@owner_login_name = N'sa'
         ,@notify_email_operator_name = @notifyOperator

@@ -35,7 +35,7 @@ values
     ,'Minute'
     ,1
     ,'$NotifyOperator'
-    ,2
+    ,'OnFailure'
     ,0
     ,1
     ,0
