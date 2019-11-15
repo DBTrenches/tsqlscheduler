@@ -5,12 +5,11 @@ fileName,IsAGMode,IsStandaloneMode
 .\Tables\Task_AG.sql,TRUE,FALSE
 .\Tables\ReplicaStatus.sql,TRUE,FALSE
 .\Procedures\SetContextInfo.sql,TRUE,TRUE
-.\Procedures\ExecuteTask_AG.sql,TRUE,FALSE
 .\Functions\GetAvailabilityGroupRole.sql,TRUE,FALSE
 .\Functions\GetCachedAvailabilityGroupRole.sql,TRUE,FALSE
 .\Procedures\UpdateReplicaStatus.sql,TRUE,FALSE
 .\Tables\Task_Standalone.sql,FALSE,TRUE
-.\Procedures\ExecuteTask_Standalone.sql,FALSE,TRUE
+.\Procedures\ExecuteTask.sql,TRUE,TRUE
 .\Tables\TaskExecution.sql,TRUE,TRUE
 .\Functions\GetVersion.sql,TRUE,TRUE
 .\Procedures\CreateAgentJob.sql,TRUE,TRUE

@@ -24,18 +24,31 @@ begin
       ,@monthOfYear tinyint
       ,@command nvarchar(max)
       ,@isEnabled bit
-      ,@isNotifyOnFailure bit;
-      
-  set @monthOfYear = cast(month(@startDateTime) as tinyint)
-
+      ,@isNotifyOnFailure bit
+      ,@isSchedulerDatabaseWriteable bit;
+  
+  set  @monthOfYear = cast(month(@startDateTime) as tinyint)
+  
   select  @command = t.TSQLCommand
       ,@isEnabled = t.IsEnabled
+      ,@isDeleted = t.IsDeleted
       ,@isNotifyOnFailure = t.IsNotifyOnFailure
+      ,@isSchedulerDatabaseWriteable = 
+      case databasepropertyex(db_name(), 'Updateability')
+        when 'READ_WRITE' then 1
+        else 0
+      end
   from  scheduler.Task as t
-  where	t.TaskUid = @taskUid;
+  where t.TaskUid = @taskUid;
 
-  /* Run the task only if it is enabled */
-  if @isEnabled = 0
+  /* Run the task only:
+    - If it is enabled
+    - It isn't deleted
+    - The scheduler database is writeable
+      - Might be a read only replica
+      - Or non-writeable for some other reason
+  */
+  if @isEnabled = 0 or @isDeleted = 1 or @isSchedulerDatabaseWriteable = 0
   begin
     return;
   end
