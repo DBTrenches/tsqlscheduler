@@ -9,7 +9,7 @@ Create agent jobs from definitions stored in SQL tables.  Currently supports the
 - Schedule tasks to run on a schedule every day, or every `N` hours/minutes/seconds
 - Automatically create a SQL Agent job from each task (stored in a Task table)
 - Provide logging of task execution history (runtime, success/failure, error messages)
-- Conditional execution of tasks based on replica status - if an availability group is linked to a task that task will only run when that node is the primary replica
+- Conditional execution of tasks based on database status - if the scheduler database is part of an availability group, tasks will only run when that node is the primary replica (the database is `read_write`)
 
 This is intended as an administrative tool and as such requires and will schedule jobs to run with sysadmin / `sa` privileges.
 
@@ -26,13 +26,11 @@ See also [Removing the Scheduler](deploy/README.md#uninstallation)
 - The replica must be configured as a [readable secondary][readable-secondary] 
 - All requisite DBs must be created and added to the AG as necessary before installation.  
 - Deployment scripts use integrated security.  Use of SQL Logins has not been tested but can be attempted but adding the appropriate [`Invoke-SqlCmd`][invoke-sqlcmd - BOL] flags in the [tsqlScheduler module](src/Modulers/tsqlScheduler/tsqlScheduler.psm1) and [deploying manually](deploy/README.md).
-- Task names (`@jobIdentifier`) should match the pattern `$ownLocation-$target-$task`
 - Consider environment. Tasks in the HA scheduler with any dependencies outside the AG may not succeed after failover unless all dependencies are already available at the failover location.
-- At time of failover, currently running HA Jobs may forcibly fail.  
 
 ## Managing Tasks
 
-Jobs are managed via rows in the scheduler.Task table. Use the [`UpsertTask`](src/Procedures/UpsertTask.sql) proc to create, modify, or delete a task. To retrieve the current values for a task & make incremental modifications, you may use the [`GetTask`](src/Procedures/GetTask.sql) proc. You can also maintain a separate repository with configuration files and publish tasks [as described here](deploy/tasks/README.md).  
+Jobs are managed via rows in the scheduler.Task table. Use the [`UpsertTask`](src/Procedures/UpsertTask.sql) proc to create, modify, or delete a task.  You can maintain a separate repository with configuration files and publish tasks [as described here](deploy/tasks/README.md).  
 
 Usage of `UpsertTask` is demonstrated below.
 
@@ -47,7 +45,7 @@ exec scheduler.UpsertTask
     @jobIdentifier =     @jobName, 
     @tsqlCommand =       @tsql, 
     @startTime =         '00:00', 
-    @frequencyType =     3, 
+    @frequencyType =     'Minute', 
     @frequencyInterval = 1, 
     @notifyOperator =    @operator, 
     @isNotifyOnFailure = 0;
@@ -56,18 +54,12 @@ exec scheduler.UpsertTask
 You can then either wait for the AutoUpsert job to run, or force creation of the agent job:
 
 ```sql
-exec scheduler.CreateJobFromTask @identifier = 'Utility-agDatabase-TaskName'
+exec scheduler.CreateJobFromTask @identifier = '{taskuid guid of the job you just created}'
 ```
 
-After deleting a task (`UpsertTask @action='DELETE, @task=...`) in order forcibly delete the agent job, either wait for the AutoUpsert job or manually call the `RemoveJobFromTask` procedure. You are then free to delete the row from the task table.
+After deleting a task (`UpsertTask @action='DELETE, @taskuid=...`) in order forcibly delete the agent job, either wait for the AutoUpsert job or manually call the `RemoveJobFromTask` procedure. You are then free to delete the row from the task table.
 
 #### Column reference
-
-Frequency Type
-- 1 = Once per day
-- 2 = Every `x` hours
-- 3 = Every `x` minutes
-- 4 = Every `x` seconds
 
 `FrequencyInterval` corresponds to the `x` for frequency types 2-4. It **must** be 0 if the frequency is set to daily.
 
@@ -94,13 +86,13 @@ from	scheduler.CurrentlyExecutingTasks as cet
 join    scheduler.GetInstanceId() as id
 on      cet.Instanceid = id.Id
 join	scheduler.Task as t
-on		t.TaskId = cet.TaskId
+on		t.TaskUid = cet.TaskUid
 join	scheduler.TaskExecution as te
 on		te.ExecutionId = cet.ExecutionId
 outer apply (
 	select top 1 *
 	from scheduler.TaskExecution as teh
-	where teh.TaskId = t.TaskId
+	where teh.TaskUid = t.TaskUid
 	and teh.ExecutionId <> te.ExecutionId
 	order by ExecutionId desc
 ) as lastResult
@@ -108,15 +100,11 @@ outer apply (
 
 ## How it works
 
-The Task table holds one row for each task that should be executed in the context of that database.  When an agent job is created from this task a job is created as a wrapper around the scheduler.ExecuteTask stored procedure.  This procedure uses the metadata from the Task table to execute the TSQLCommand with `sp_executesql`.
+The Task table holds one row for each task that should be executed in the context of that database.  When an agent job is created from this task a job is created as a wrapper around the `scheduler.ExecuteTask` stored procedure.  This procedure uses the metadata from the Task table to execute the TSQLCommand with `sp_executesql`.
 
 Before the task is executed the Id of the instance, task, and execution are stored in the [`context_info`][context_info - BOL] object, which allows the task to be tracked via the [`scheduler.CurrentlyExecutingTasks`](crs/Views/CurrentlyExecutingTasks.sql) view.
 
 The auto-upsert logic uses the temporal table field `SysStartTime` on the Task table, and the agent job's last modified date, to determine which jobs require modification.
-
-### Tracking Replica Role (AG Mode)
-
-The `RecordReplicaStatus` job is created on installation and runs to periodically persist the current status of each node to [`ReplicaStatus`](src/Tables/ReplicaStatus.sql).  This table is then queried by `ExecuteTask` to see **if** the task should execute.  This is done to minimise blocking caused by many concurrent tasks querying [the relevant AG DMVs](src/Procedures/UpdateReplicaStatus.sql).
 
 ### Server Time
 
