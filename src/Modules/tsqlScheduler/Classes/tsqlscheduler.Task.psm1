@@ -1,4 +1,4 @@
-class Job : IEquatable[Object] {
+class Task : IEquatable[Object] {
   [Guid] $TaskUid
   [string] $Identifier
   [string] $TSQLCommand
@@ -9,7 +9,7 @@ class Job : IEquatable[Object] {
   [bool] $IsNotifyOnfailure
   [bool] $IsEnabled
   [bool] $IsDeleted
-  [int] $NotifyLevelEventLog
+  [string] $NotifyLevelEventLog
   
   [bool] Equals($other) {
     return (
