@@ -3,14 +3,9 @@
     Param (
         [string] $server
         , [string] $database
-        , [boolean] $agMode = $false
-        , [string] $availabilityGroup
     )
 
-    $deployMode = if ($agMode) { "IsAGMode" }else { "IsStandaloneMode" }
-    $compileInclude = Import-Csv $PSScriptRoot\..\..\compileInclude.csv
-
-    $files += $compileInclude | Where-Object { $_."$deployMode" -match $true } 
+    $files = Get-ChildItem $PSScriptRoot\..\..\ -Recurse -Filter *.sql -Exclude HardStop.sql,RemoveAllObjects.sql | Select-Object FullName
 
     Write-Verbose ">>>>>>> $server"
     Write-Verbose ">>>>>>> $database"
@@ -34,19 +29,7 @@
     Write-Verbose "--------------------------------------------------------------------"
 
     $files | foreach-object { 
-        Write-Verbose $_.fileName
-        Invoke-SqlCmd -ServerInstance $server -Database $database -InputFile "$PSScriptRoot\..\..\$($_.fileName)" 
-    }
-
-    if ($agMode) {
-        $availabilityGroupFunction = @"
-        create or alter function scheduler.GetAvailabilityGroup()
-        returns table
-        as
-        return (
-            select cast('$availabilityGroup' as nvarchar(128)) as AvailabilityGroup
-        );
-"@
-        Invoke-SqlCmd -ServerInstance $server -Database $database -Query $availabilityGroupFunction
+        Write-Verbose $_.FullName
+        Invoke-SqlCmd -ServerInstance $server -Database $database -InputFile $_.FullName
     }
 }

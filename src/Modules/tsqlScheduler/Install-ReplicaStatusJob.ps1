@@ -24,7 +24,6 @@ insert into scheduler.Task
     ,NotifyLevelEventLog 
     ,IsNotifyOnFailure
     ,IsEnabled
-    ,IsCachedRoleCheck
 )
 values
 (
@@ -38,7 +37,6 @@ values
     ,'OnFailure'
     ,0
     ,1
-    ,0
 )
 "
 
