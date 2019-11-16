@@ -1,5 +1,3 @@
-# Returns an array of tasks from the specified server/database
-# If TaskUid is specified returns that Task only (or $null)
 Function Get-TasksFromDatabase 
 {
   [cmdletbinding()]
