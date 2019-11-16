@@ -13,20 +13,38 @@
         New-Item -ItemType Directory -Force -Path $folder
     }
 
-    $getTasksQ = "select * from scheduler.TaskConfig;"
-    $allTasks = (Invoke-Sqlcmd -ServerInstance $fromServer -Database $fromDatabase -Query $getTasksQ)
+    $getTasksQ = "
+select  
+    TaskUid,
+    Identifier,
+    (select 
+        TaskUid,
+        Identifier,
+        TSQLCommand,
+        StartTime,
+        Frequency,
+        FrequencyInterval,
+        NotifyOnFailureOperator,
+        IsNotifyOnFailure,
+        IsEnabled,
+        IsDeleted,
+        NotifyLevelEventlog
+    for json path, without_array_wrapper) as Config
+from scheduler.Task
+"
+
+    $allTasks = @(Invoke-Sqlcmd -ServerInstance $fromServer -Database $fromDatabase -Query $getTasksQ)
 
     foreach($t in $allTasks){
-        $fName = ($t.Identifier).Trim(":\").Replace("/","") # do this better...
-
-        $fName = "$folder\$fName.json"
-    
+        $fName = $t.TaskUid # do this better...
+        $fName = "$folder\$fName.job.json"
         $config = $t.Config
-
         $config=($config | ConvertFrom-Json | ConvertTo-Json)
 
         Set-Content -LiteralPath $fName -Value $config 
     }
+
+    Push-Location
 
     Set-Location $folder
 
@@ -35,5 +53,5 @@
         Publish-TaskFromConfig -config $t.Name -server $toServer -Database $toDatabase
     }
 
-    Set-Location ..
+    Pop-Location
 }
