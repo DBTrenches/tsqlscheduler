@@ -2,9 +2,13 @@ Function Get-TasksFromDatabase
 {
   [cmdletbinding()]
   Param (
-      [string] $Server
-      ,[string] $Database
-      ,[string] $TaskUid
+    [Parameter(Mandatory=$true)]
+    [string] $Server,
+
+    [Parameter(Mandatory=$true)]
+    [string] $Database,
+
+    [string] $TaskUid
   )
 
   $getTasksQuery = "
