@@ -6,3 +6,4 @@ using module .\Classes\tsqlscheduler.Task.psm1
 . $PSScriptRoot/Sync-SchedulerState
 . $PSScriptRoot/Get-TasksFromDatabase
 . $PSScriptRoot/Get-TaskFromDatabase
+. $PSScriptRoot/Set-TaskInDatabase
