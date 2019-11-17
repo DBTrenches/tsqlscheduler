@@ -22,9 +22,17 @@ begin
   from    scheduler.Task as t
   where   t.IsDeleted = 0
   and not exists (
-    select  1 
+    select 1
     from 	msdb.dbo.sysjobs j 
-    where j.name = t.Identifier 
+    cross apply openjson (j.Description, N'$')
+    with (
+        InstanceId      uniqueidentifier    N'$.instanceId'
+        ,TaskUid        uniqueidentifier    N'$.taskUid'
+    ) as task
+    cross apply scheduler.GetInstanceId() as id
+    where	isjson(j.description) = 1
+    and   id.Id = task.InstanceId
+    and   t.TaskUid = task.TaskUid
     and   j.date_modified >= t.sysStartTime
   );
 
@@ -60,13 +68,21 @@ begin
 
   insert into #DeleteWork
           (TaskUid)
-  select    t.TaskUid 
-  from      scheduler.Task as t
+  select  t.TaskUid 
+  from    scheduler.Task as t
   where   t.IsDeleted = 1
   and exists  (
-    select  1 
-    from  msdb.dbo.sysjobs j 
-    where j.name = t.Identifier 
+    select 1
+    from 	msdb.dbo.sysjobs j 
+    cross apply openjson (j.Description, N'$')
+    with (
+        InstanceId      uniqueidentifier    N'$.instanceId'
+        ,TaskUid        uniqueidentifier    N'$.taskUid'
+    ) as task
+    cross apply scheduler.GetInstanceId() as id
+    where	isjson(j.description) = 1
+    and   id.Id = task.InstanceId
+    and   t.TaskUid = task.TaskUid
   );
 
   set @maxId = scope_identity();
