@@ -8,6 +8,7 @@
         ,[string] $toDatabase
         ,[string] $folder="./tasks"
     )
+    Write-Error "This file is currently broken!"
 
     if((Test-Path $folder) -eq $false){
         New-Item -ItemType Directory -Force -Path $folder
