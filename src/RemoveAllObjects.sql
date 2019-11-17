@@ -15,7 +15,6 @@ go
 drop table if exists scheduler.Task;
 drop table if exists scheduler.TaskHistory;
 drop table if exists scheduler.TaskExecution;
-drop table if exists scheduler.ReplicaStatus;
 go
 
 /*** VIEWS ***/
