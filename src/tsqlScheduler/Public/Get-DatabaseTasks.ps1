@@ -1,4 +1,4 @@
-Function Get-TasksFromDatabase 
+Function Get-DatabaseTasks 
 {
   [cmdletbinding()]
   Param (

@@ -1,4 +1,4 @@
-Function Set-TaskInDatabase
+Function Set-DatabaseTask
 {
   [cmdletbinding()]
   Param (
