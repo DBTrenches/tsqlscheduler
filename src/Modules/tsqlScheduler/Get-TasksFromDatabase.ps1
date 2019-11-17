@@ -34,17 +34,17 @@ from scheduler.Task
   $tasks = @()
   foreach($rawTask in $rawTasks) {
     $task = [Task]::new()
-      $task.TaskUid = $rawTask.TaskUid
-      $task.Identifier = $rawTask.Identifier
-      $task.TSQLCommand = $rawTask.TSQLCommand
-      $task.StartTime = $rawTask.StartTime
-      $task.Frequency = $rawTask.Frequency
-      $task.FrequencyInterval = $rawTask.FrequencyInterval
-      $task.NotifyOnFailureOperator = $rawTask.NotifyOnFailureOperator
-      $task.IsNotifyOnFailure = $rawTask.IsNotifyOnFailure
-      $task.IsEnabled = $rawTask.IsEnabled
-      $task.IsDeleted = $rawTask.IsDeleted
-      $task.NotifyLevelEventlog = $rawTask.NotifyLevelEventlog
+    $task.TaskUid = $rawTask.TaskUid
+    $task.Identifier = $rawTask.Identifier
+    $task.TSQLCommand = $rawTask.TSQLCommand
+    $task.StartTime = $rawTask.StartTime
+    $task.Frequency = $rawTask.Frequency
+    $task.FrequencyInterval = $rawTask.FrequencyInterval
+    $task.NotifyOnFailureOperator = $rawTask.NotifyOnFailureOperator
+    $task.IsNotifyOnFailure = $rawTask.IsNotifyOnFailure
+    $task.IsEnabled = $rawTask.IsEnabled
+    $task.IsDeleted = $rawTask.IsDeleted
+    $task.NotifyLevelEventlog = $rawTask.NotifyLevelEventlog
     $tasks += $task
   }
 
