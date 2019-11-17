@@ -12,7 +12,7 @@ create table scheduler.Task
   ,IsDeleted bit not null constraint DF_IsDeleted default (0)
   ,NotifyLevelEventlog varchar(9) constraint DF_Task_NotifyLevelEventlog default ('OnFailure')
   ,SysStartTime datetime2 generated always as row start not null
-  ,SysEndTime datetime2 generated always as row end not NULL
+  ,SysEndTime datetime2 generated always as row end not null
   ,period for system_time (SysStartTime, SysEndTime)
   ,constraint PK_Task primary key clustered (TaskUid) with (data_compression = page)
   ,constraint UQ_Task_Name unique nonclustered (Identifier) with (data_compression = page)
