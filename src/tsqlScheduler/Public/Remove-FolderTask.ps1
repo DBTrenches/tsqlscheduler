@@ -1,6 +1,6 @@
 Function Remove-FolderTask
 {
-  [cmdletbinding()]
+  [cmdletbinding(SupportsShouldProcess=$True)]
   Param (
     [Parameter(Mandatory=$true)]
     [ValidateScript({ Test-Path -Path $PSItem })]

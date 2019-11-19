@@ -1,20 +1,22 @@
-Function Remove-DatabaseTask 
-{
-  [cmdletbinding()]
+Function Remove-DatabaseTask {
+  [cmdletbinding(SupportsShouldProcess = $True)]
   Param (
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string] $Server,
 
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string] $Database,
 
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [Task] $Task
   )
+  if ($PSCmdlet.ShouldProcess("Task $($Task.TaskUid) in $Database on $Server")) {
 
-  $deleteQuery = "
+
+    $deleteQuery = "
 delete from scheduler.Task where TaskUid = '$($Task.TaskUid)'
 "
 
-  Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query $deleteQuery
+    Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query $deleteQuery
+  }
 }
