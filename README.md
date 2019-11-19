@@ -112,7 +112,7 @@ You can query MSDB to find all jobs linked to the current instance (database) wi
 
 The Task table holds one row for each task that should be executed in the context of that database.  When an agent job is created from this task a job is created as a wrapper around the `scheduler.ExecuteTask` stored procedure.  This procedure uses the metadata from the Task table to execute the TSQLCommand with `sp_executesql`.  The InstanceId and TaskId are stored in the job description, encoded with JSON.
 
-Before the task is executed the Id of the instance, task, and execution are stored in the [`context_info`][context_info - BOL] object, which allows the task to be tracked via the [`scheduler.CurrentlyExecutingTasks`](crs/Views/CurrentlyExecutingTasks.sql) view.
+Before the task is executed the Id of the instance, task, and execution are stored in the [`context_info`][context_info - BOL] object, which allows the task to be tracked via the [`scheduler.CurrentlyExecutingTasks`](src/tsqlScheduler/SQL/Views/CurrentlyExecutingTasks.sql) view.
 
 The auto-upsert logic uses the temporal table field `SysStartTime` on the Task table, and the agent job's last modified date, to determine which jobs require modification.
 
