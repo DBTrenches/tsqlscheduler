@@ -8,8 +8,8 @@ Function Remove-FolderTask
     [string] $FolderPath,
 
     [Parameter(Mandatory=$true)]
-    [Guid] $TaskUid
+    [Task] $Task
   )
 
-  Remove-Item -Path $FolderPath -Include "$($TaskUid.ToString()).task.json"
+  Remove-Item -Path $FolderPath -Include "$($Task.TaskUid).task.json"
 }

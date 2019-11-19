@@ -9,11 +9,11 @@ Function Remove-DatabaseTask
     [string] $Database,
 
     [Parameter(Mandatory=$true)]
-    [string] $TaskUid
+    [Task] $Task
   )
 
   $deleteQuery = "
-delete from scheduler.Task where TaskUid = '$TaskUid'
+delete from scheduler.Task where TaskUid = '$($Task.TaskUid)'
 "
 
   Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query $deleteQuery
