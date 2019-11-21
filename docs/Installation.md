@@ -1,5 +1,7 @@
 Jump To [Uninstallation](#uninstallation)
 
+> Migrating from v1?  See [migration](./migrationfromv1.md)
+
 # Deployment
 
 Deploying to an AG follows the below footprint. 
