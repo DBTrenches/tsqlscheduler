@@ -1,4 +1,4 @@
-Import-Module $PSScriptRoot\..\src\Modules\tsqlScheduler -Force
+Import-Module $PSScriptRoot\..\src\tsqlScheduler -Force
 
 $module = "tsqlScheduler"
 

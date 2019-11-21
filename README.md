@@ -9,89 +9,75 @@ Create agent jobs from definitions stored in SQL tables.  Currently supports the
 - Schedule tasks to run on a schedule every day, or every `N` hours/minutes/seconds
 - Automatically create a SQL Agent job from each task (stored in a Task table)
 - Provide logging of task execution history (runtime, success/failure, error messages)
-- Conditional execution of tasks based on replica status - if an availability group is linked to a task that task will only run when that node is the primary replica
+- Conditional execution of tasks based on database status - if the scheduler database is part of an availability group, tasks will only run when that node is the primary replica (the database is `read_write`)
 
 This is intended as an administrative tool and as such requires and will schedule jobs to run with sysadmin / `sa` privileges.
 
 ## Installation
 
-### Availability Group Mode
+See the dedicated [installation instructions](deploy/Installation.md).
 
-- Clone the repository
-- Open a powershell session and change to the `src` folder
-- Execute `..\deploy\deploy "HA"` followed by the name of your AG
-
-A config file for your AG is required. This file should be located in the [deploy/servers](deploy/servers) directory with the naming convention `agName.json` and should be of [this form](deploy/servers/AG1-sample.json) (for an AG with a name of `AG1-sample`). The deploy script will attempt to auto-create a config file in the event one is not found, although you will need to manually enter some information. 
-
-### Standalone (Instance) Mode
-
-While the Scheduler is developed for use in an AG environment, it is possible to administer your Server Agent in a single-instance environment as well.  
-
-- Clone the repository
-- Open a powershell session and change to the `src` folder
-- Execute `..\deploy\deploy "Single Instance"` 
-
-Jump to: [Removing the Scheduler](deploy/README.md#uninstallation)
+See also [Removing the Scheduler](deploy/Installation.md#uninstallation)
 
 ## Notes and Requirements
 
-- SQL 2016 is required
+- SQL 2016+ is required (tested on 2016, 2017)
 - [The server time must be UTC](#server-time)
-- The replica must be configured as a [readable secondary][readable-secondary] 
-- All requisite DBs must be created and added to the AG as necessary before installation.  
-- Deployment scripts use integrated security.  Use of SQL Logins has not been tested but can be attempted but adding the appropriate [`Invoke-SqlCmd`][invoke-sqlcmd - BOL] flags in the [tsqlScheduler module](src/Modulers/tsqlScheduler/tsqlScheduler.psm1) and [deploying manually](deploy/README.md).
-- Task names (`@jobIdentifier`) should match the pattern `$ownLocation-$target-$task`
-- Consider environment. Tasks in the HA scheduler with any dependencies outside the AG may not succeed after failover unless all dependencies are already available at the failover location.
-- At time of failover, currently running HA Jobs may forcibly fail.  
+- Replicas that host jobs must be configured as a [readable secondary][readable-secondary] 
+- All requisite DBs must be created and added to the AG before installation.  
+- Deployment scripts use integrated security.  Use of SQL Logins has not been tested but can be attempted but adding the appropriate [`Invoke-SqlCmd`][invoke-sqlcmd - BOL] flags in the [tsqlScheduler module](src/tsqlScheduler/tsqlScheduler.psm1).
+- Consider environment. Tasks in the HA scheduler with any dependencies outside the AG may not succeed after failover unless all dependencies are already available on the new primary.
 
 ## Managing Tasks
 
-Jobs are managed via rows in the scheduler.Task table. Use the [`UpsertTask`](src/Procedures/UpsertTask.sql) proc to create, modify, or delete a task. To retrieve the current values for a task & make incremental modifications, you may use the [`GetTask`](src/Procedures/GetTask.sql) proc. You can also maintain a separate repository with configuration files and publish tasks [as described here](deploy/tasks/README.md).  
+Jobs are managed via rows in the scheduler.Task table. You can maintain a separate repository with configuration files and keep it in sync with the various Sync cmdlets (`Sync-FolderToDatabase`, etc.).
 
-Usage of `UpsertTask` is demonstrated below.
+Inserting a task can be done with SQL:
 
 ```sql
-declare 
-	@jobName nvarchar(255) =  N'Utility-agDatabase-TaskName',
-	@tsql nvarchar(max) =     N'',
-	@operator nvarchar(128) = N'Test Operator'; 
-
-exec scheduler.UpsertTask
-    @action =            'INSERT', -- or 'UPDATE' or 'DELETE'
-    @jobIdentifier =     @jobName, 
-    @tsqlCommand =       @tsql, 
-    @startTime =         '00:00', 
-    @frequencyType =     3, 
-    @frequencyInterval = 1, 
-    @notifyOperator =    @operator, 
-    @isNotifyOnFailure = 0;
+insert into scheduler.Task
+(
+  Identifier
+  ,TSQLCommand
+  ,StartTime
+  ,Frequency
+  ,FrequencyInterval
+  ,NotifyOnFailureOperator
+)
+values
+(
+  'I will run once an hour'
+  ,'select 1 as AndNotDoMuch'
+  ,'00:00:00'
+  ,'Hour'
+  ,1
+  ,'Test Operator'
+)
 ```
 
 You can then either wait for the AutoUpsert job to run, or force creation of the agent job:
 
 ```sql
-exec scheduler.CreateJobFromTask @identifier = 'Utility-agDatabase-TaskName'
+exec scheduler.CreateJobFromTask @TaskUid = '{TaskUid guid of the job you just created}'
 ```
 
-After deleting a task (`UpsertTask @action='DELETE, @task=...`) in order forcibly delete the agent job, either wait for the AutoUpsert job or manually call the `RemoveJobFromTask` procedure. You are then free to delete the row from the task table.
+After marking a task as deleted, in order forcibly delete the agent job you can either wait for the AutoUpsert job or manually call the `scheduler.RemoveJobFromTask` procedure. You are then free to delete the row from the task table.
 
 #### Column reference
 
-Frequency Type
-- 1 = Once per day
-- 2 = Every `x` hours
-- 3 = Every `x` minutes
-- 4 = Every `x` seconds
+`Frequency` is one of `Day`,`Hour`,`Minute`, or `Second`.
 
-`FrequencyInterval` corresponds to the `x` for frequency types 2-4. It **must** be 0 if the frequency is set to daily.
+`FrequencyInterval` corresponds to the `x` for frequency types Hour/Minute/Second. It **must** be 0 if the frequency is set to daily.
 
 The `StartTime` specified is either the time of day the job will run (if once per day), or the time of day the schedule starts (for any other frequency).
 
-If `IsNotifyOnFailure` is true (1) then the specified operator will be notified by email every time the job fails.
+If `IsNotifyOnFailure` is true (1) then the specified operator (`NotifyOnFailureOperator`) will be notified by email every time the job fails.
+
+`NotifyLevelEventlog` controls which job completions write to the Windows event log, it can be one of `Never`, `OnFailure` (default), `OnSuccess`, or `Always`.
 
 ## Monitoring
 
-You can monitor executions via the `scheduler.TaskExecution` table.  
+You can monitor executions via the `scheduler.TaskExecution` table.  This table is partitioned by default on a scheme which uses month of year (execution date) as the partition key.
 
 Task configuration history is available in the `scheduler.TaskHistory` table, or by querying the `scheduler.Task` table with a temporal query.
 
@@ -99,42 +85,102 @@ You can view currently running tasks by querying the **scheduler.CurrentlyExecut
 
 ```sql
 select	te.StartDateTime
-		,datediff(second,te.StartDateTime, getutcdate()) as DurationSeconds
-		,t.Identifier
-		,lastResult.StartDateTime as LastStartTime
-		,datediff(second,lastResult.StartDateTime, lastResult.EndDateTime) as LastDurationSeconds
-		,lastResult.IsError as LastIsError
+    ,datediff(second,te.StartDateTime, getutcdate()) as DurationSeconds
+    ,t.Identifier
+    ,lastResult.StartDateTime as LastStartTime
+    ,datediff(second,lastResult.StartDateTime, lastResult.EndDateTime) as LastDurationSeconds
+    ,lastResult.IsError as LastIsError
 from	scheduler.CurrentlyExecutingTasks as cet
 join    scheduler.GetInstanceId() as id
 on      cet.Instanceid = id.Id
 join	scheduler.Task as t
-on		t.TaskId = cet.TaskId
+on		t.TaskUid = cet.TaskUid
 join	scheduler.TaskExecution as te
 on		te.ExecutionId = cet.ExecutionId
 outer apply (
-	select top 1 *
-	from scheduler.TaskExecution as teh
-	where teh.TaskId = t.TaskId
-	and teh.ExecutionId <> te.ExecutionId
-	order by ExecutionId desc
+  select top 1 *
+  from scheduler.TaskExecution as teh
+  where teh.TaskUid = t.TaskUid
+  and teh.ExecutionId <> te.ExecutionId
+  order by ExecutionId desc
 ) as lastResult
 ```
 
+You can query MSDB to find all jobs linked to the current instance (database) with the view `scheduler.AgentJobsForCurrentInstance`.
+
 ## How it works
 
-The Task table holds one row for each task that should be executed in the context of that database.  When an agent job is created from this task a job is created as a wrapper around the scheduler.ExecuteTask stored procedure.  This procedure uses the metadata from the Task table to execute the TSQLCommand with `sp_executesql`.
+The Task table holds one row for each task that should be executed in the context of that database.  When an agent job is created from this task a job is created as a wrapper around the `scheduler.ExecuteTask` stored procedure.  This procedure uses the metadata from the Task table to execute the TSQLCommand with `sp_executesql`.  The InstanceId and TaskId are stored in the job description, encoded with JSON.
 
-Before the task is executed the Id of the instance, task, and execution are stored in the [`context_info`][context_info - BOL] object, which allows the task to be tracked via the [`scheduler.CurrentlyExecutingTasks`](crs/Views/CurrentlyExecutingTasks.sql) view.
+Before the task is executed the Id of the instance, task, and execution are stored in the [`context_info`][context_info - BOL] object, which allows the task to be tracked via the [`scheduler.CurrentlyExecutingTasks`](src/tsqlScheduler/SQL/Views/CurrentlyExecutingTasks.sql) view.
 
 The auto-upsert logic uses the temporal table field `SysStartTime` on the Task table, and the agent job's last modified date, to determine which jobs require modification.
-
-### Tracking Replica Role (AG Mode)
-
-The `RecordReplicaStatus` job is created on installation and runs to periodically persist the current status of each node to [`ReplicaStatus`](src/Tables/ReplicaStatus.sql).  This table is then queried by `ExecuteTask` to see **if** the task should execute.  This is done to minimise blocking caused by many concurrent tasks querying [the relevant AG DMVs](src/Procedures/UpdateReplicaStatus.sql).
 
 ### Server Time
 
 **The server needs to be in the UTC time zone** for the solution to work correctly.  This is due to the comparison of [`sysjobs.date_modified`][sysjobs - BOL] to `Task.SysStartTime` in the `UpsertJobsForAllTasks` procedure.  `SysStartTime` is always recorded in UTC, whereas `date_modified` uses the server time.  If the server is not in UTC then there may be delays in job changes propagating to the agent job, or jobs may be recreated needlessly (depending on whether the server is ahead of or behind UTC).
+
+## PowerShell module references
+
+In addition to installation, the tsqlScheduler module supports task management.  All cmdlets that make changes support the `-WhatIf` switch.
+
+Database task management
+- Get-DatabaseTasks
+- Get-DatabaseTask
+- Set-DatabaseTask
+- Remove-DatabaseTask
+
+Folder task management (each task saved as as {TaskUid}.task.json file)
+- Get-FolderTasks
+- Get-FolderTask
+- Set-FolderTask
+- Remove-FolderTask
+
+Comparison
+- Compare-TaskLists
+  - Takes a source and destination array of tasks, and returns a comparison object with 4 arrays - Add, Update, NoChange, and Remove
+
+Sync
+- Sync-DatabaseToDatabase
+- Sync-DatabaseToFolder
+- Sync-FolderToDatabase
+- Sync-FolderToFolder
+
+### Example sync code
+
+Assume we want to take a copy of our database and store it in a git repo on disk:
+
+```powershell
+$common = @{ Database = "SchedulerDB"; Server = "ProdServer" }
+$gitFolder = "c:\src\DatabaseTasks\ProdServer"
+
+Sync-DatabaseToFolder @common -FolderPath $gitFolder
+```
+
+Then perhaps we make some changes to a task to run it once every 6 hours, instead of once everyday:
+
+```powershell
+$taskUid = "E1DF0D10-1160-4878-AD3D-C627670B167E"
+
+# Get the task from the folder
+$task = Get-FolderTask -FolderPath $gitFolder -TaskUid $taskUid
+
+# Update the properties (note we could have edited the .json file directly too)
+$task.Frequency = "Hour"
+$task.FrequencyInterval = 6
+
+# And save it back to the folder
+Set-FolderTask -FolderPath $gitFolder -Task $task
+```
+
+And then we'll want to sync it back to the database - checking the impact first:
+
+```powershell
+Sync-FolderToDatabase @common -FolderPath $gitFolder -WhatIf
+
+# And then do it for real - we use Verbose to see what is happening
+Sync-FolderToDatabase @common -FolderPath $gitFolder -Verbose
+```
 
 ### Code Style
 
