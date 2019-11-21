@@ -15,9 +15,9 @@ This is intended as an administrative tool and as such requires and will schedul
 
 ## Installation
 
-See the dedicated [installation instructions](deploy/Installation.md).
+See the dedicated [installation instructions](docs/Installation.md).
 
-See also [Removing the Scheduler](deploy/Installation.md#uninstallation)
+See also [Removing the Scheduler](docs/Installation.md#uninstallation)
 
 ## Notes and Requirements
 
