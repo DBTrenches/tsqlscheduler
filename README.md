@@ -1,10 +1,10 @@
-##### [Installation](#installation) | [Notes & Requirements](#notes-and-requirements) | [Managing Tasks](#managing-tasks) | [Monitoring](#monitoring) | [How It Works](#how-it-works)
+##### [Installation](#installation) | [Notes & Requirements](#notes-and-requirements) | [Managing Tasks](#managing-tasks) | [Monitoring](#monitoring) | [Powershell Module Reference](#powershell-module-reference) | [How It Works](#how-it-works)
 
 # tsqlScheduler
 
-When running an Availability Group installation, you may wish to have the Server Agent execute Jobs against your highly available databases. However in the event of failover these Tasks will not exist by default on the replica. Additionally if you modify a Job on the primary replica, keeping parity on each secondary replica requires a separate action. This module automates parity of Server Agent Jobs across all replicas and makes Tasks executed by these Jobs Highly Available alongside any HA database.  
+When running an Availability Group installation, you may wish to have the Server Agent execute Jobs against your highly available databases. However in the event of failover these Tasks will not exist by default on the replica. Additionally if you modify a Job on the primary replica, keeping parity on each secondary replica requires a separate action. This module automates parity of Server Agent Jobs across all replicas and makes Tasks executed by these Jobs Highly Available alongside any HA database.
 
-Create agent jobs from definitions stored in SQL tables.  Currently supports the following features:
+Create agent jobs from definitions stored in SQL tables. Currently supports the following features:
 
 - Schedule tasks to run on a schedule every day, or every `N` hours/minutes/seconds
 - Automatically create a SQL Agent job from each task (stored in a Task table)
@@ -23,9 +23,9 @@ See also [Removing the Scheduler](docs/Installation.md#uninstallation)
 
 - SQL 2016+ is required (tested on 2016, 2017)
 - [The server time must be UTC](#server-time)
-- Replicas that host jobs must be configured as a [readable secondary][readable-secondary] 
-- All requisite DBs must be created and added to the AG before installation.  
-- Deployment scripts use integrated security.  Use of SQL Logins has not been tested but can be attempted but adding the appropriate [`Invoke-SqlCmd`][invoke-sqlcmd - BOL] flags in the [tsqlScheduler module](src/tsqlScheduler/tsqlScheduler.psm1).
+- Replicas that host jobs must be configured as a [readable secondary][readable-secondary]
+- All requisite DBs must be created and added to the AG before installation.
+- Deployment scripts use integrated security. Use of SQL Logins has not been tested but can be attempted but adding the appropriate [`Invoke-SqlCmd`][invoke-sqlcmd - bol] flags in the [tsqlScheduler module](src/tsqlScheduler/tsqlScheduler.psm1).
 - Consider environment. Tasks in the HA scheduler with any dependencies outside the AG may not succeed after failover unless all dependencies are already available on the new primary.
 
 ## Managing Tasks
@@ -63,7 +63,7 @@ exec scheduler.CreateJobFromTask @TaskUid = '{TaskUid guid of the job you just c
 
 After marking a task as deleted, in order forcibly delete the agent job you can either wait for the AutoUpsert job or manually call the `scheduler.RemoveJobFromTask` procedure. You are then free to delete the row from the task table.
 
-#### Column reference
+### Column reference
 
 `Frequency` is one of `Day`,`Hour`,`Minute`, or `Second`.
 
@@ -77,26 +77,26 @@ If `IsNotifyOnFailure` is true (1) then the specified operator (`NotifyOnFailure
 
 ## Monitoring
 
-You can monitor executions via the `scheduler.TaskExecution` table.  This table is partitioned by default on a scheme which uses month of year (execution date) as the partition key.
+You can monitor executions via the `scheduler.TaskExecution` table. This table is partitioned by default on a scheme which uses month of year (execution date) as the partition key.
 
 Task configuration history is available in the `scheduler.TaskHistory` table, or by querying the `scheduler.Task` table with a temporal query.
 
-You can view currently running tasks by querying the **scheduler.CurrentlyExecutingTasks** view.  The SQL below will show all executing tasks as well as their last runtime & result.
+You can view currently running tasks by querying the **scheduler.CurrentlyExecutingTasks** view. The SQL below will show all executing tasks as well as their last runtime & result.
 
 ```sql
-select	te.StartDateTime
+select  te.StartDateTime
     ,datediff(second,te.StartDateTime, getutcdate()) as DurationSeconds
     ,t.Identifier
     ,lastResult.StartDateTime as LastStartTime
     ,datediff(second,lastResult.StartDateTime, lastResult.EndDateTime) as LastDurationSeconds
     ,lastResult.IsError as LastIsError
-from	scheduler.CurrentlyExecutingTasks as cet
+from  scheduler.CurrentlyExecutingTasks as cet
 join    scheduler.GetInstanceId() as id
 on      cet.Instanceid = id.Id
-join	scheduler.Task as t
-on		t.TaskUid = cet.TaskUid
-join	scheduler.TaskExecution as te
-on		te.ExecutionId = cet.ExecutionId
+join  scheduler.Task as t
+on    t.TaskUid = cet.TaskUid
+join  scheduler.TaskExecution as te
+on    te.ExecutionId = cet.ExecutionId
 outer apply (
   select top 1 *
   from scheduler.TaskExecution as teh
@@ -110,45 +110,62 @@ You can query MSDB to find all jobs linked to the current instance (database) wi
 
 ## How it works
 
-The Task table holds one row for each task that should be executed in the context of that database.  When an agent job is created from this task a job is created as a wrapper around the `scheduler.ExecuteTask` stored procedure.  This procedure uses the metadata from the Task table to execute the TSQLCommand with `sp_executesql`.  The InstanceId and TaskId are stored in the job description, encoded with JSON.
+The Task table holds one row for each task that should be executed in the context of that database. When an agent job is created from this task a job is created as a wrapper around the `scheduler.ExecuteTask` stored procedure. This procedure uses the metadata from the Task table to execute the TSQLCommand with `sp_executesql`. The InstanceId and TaskId are stored in the job description, encoded with JSON.
 
-Before the task is executed the Id of the instance, task, and execution are stored in the [`context_info`][context_info - BOL] object, which allows the task to be tracked via the [`scheduler.CurrentlyExecutingTasks`](src/tsqlScheduler/SQL/Views/CurrentlyExecutingTasks.sql) view.
+Before the task is executed the Id of the instance, task, and execution are stored in the [`context_info`][context_info - bol] object, which allows the task to be tracked via the [`scheduler.CurrentlyExecutingTasks`](src/tsqlScheduler/SQL/Views/CurrentlyExecutingTasks.sql) view.
 
 The auto-upsert logic uses the temporal table field `SysStartTime` on the Task table, and the agent job's last modified date, to determine which jobs require modification.
 
 ### Server Time
 
-**The server needs to be in the UTC time zone** for the solution to work correctly.  This is due to the comparison of [`sysjobs.date_modified`][sysjobs - BOL] to `Task.SysStartTime` in the `UpsertJobsForAllTasks` procedure.  `SysStartTime` is always recorded in UTC, whereas `date_modified` uses the server time.  If the server is not in UTC then there may be delays in job changes propagating to the agent job, or jobs may be recreated needlessly (depending on whether the server is ahead of or behind UTC).
+**The server needs to be in the UTC time zone** for the solution to work correctly. This is due to the comparison of [`sysjobs.date_modified`][sysjobs - bol] to `Task.SysStartTime` in the `UpsertJobsForAllTasks` procedure. `SysStartTime` is always recorded in UTC, whereas `date_modified` uses the server time. If the server is not in UTC then there may be delays in job changes propagating to the agent job, or jobs may be recreated needlessly (depending on whether the server is ahead of or behind UTC).
 
-## PowerShell module references
+## PowerShell Module Reference
 
-In addition to installation, the tsqlScheduler module supports task management.  All cmdlets that make changes support the `-WhatIf` switch.
+In addition to installation, the tsqlScheduler module supports task management. All cmdlets that make changes support the `-WhatIf` switch.
 
-Database task management
-- Get-DatabaseTasks
-- Get-DatabaseTask
-- Set-DatabaseTask
-- Remove-DatabaseTask
+### Database task management
 
-Folder task management (each task saved as as {TaskUid}.task.json file)
-- Get-FolderTasks
-- Get-FolderTask
-- Set-FolderTask
-- Remove-FolderTask
+These cmdlets support get/set/remove operations on tasks stored in a database.
 
-Comparison
-- Compare-TaskLists
-  - Takes a source and destination array of tasks, and returns a comparison object with 4 arrays - Add, Update, NoChange, and Remove
+- `Get-DatabaseTasks`
+- `Get-DatabaseTask`
+- `Set-DatabaseTask`
+- `Remove-DatabaseTask`
 
-Sync
-- Sync-DatabaseToDatabase
-- Sync-DatabaseToFolder
-- Sync-FolderToDatabase
-- Sync-FolderToFolder
+### Folder task management
+
+These cmdlets support get/set/remove operations on tasks stored in the file system (they assume each task is saved as as {TaskUid}.task.json).
+
+- `Get-FolderTasks`
+- `Get-FolderTask`
+- `Set-FolderTask`
+- `Remove-FolderTask`
+
+### Comparison
+
+This cmdlet compares two arrays of `Task` objects, returning a result object that contains Add, Update, NoChange, and Remove arrays.
+
+- `Compare-TaskLists`
+
+### Sync
+
+These cmdlets sync tasks between the filesystem and the database (in any combination). They all support the `-WhatIf` switch.
+
+- `Sync-DatabaseToDatabase`
+- `Sync-DatabaseToFolder`
+- `Sync-FolderToDatabase`
+- `Sync-FolderToFolder`
+
+### Validation
+
+This cmdlet will validate all task files (`*.task.json`) are valid `Task` objects. Returns `$true` if there are no issues. Useful in a CI build to prevent any invalid tasks being checked in.
+
+- `Test-FolderTasks`
 
 ### Example sync code
 
-Assume we want to take a copy of our database and store it in a git repo on disk:
+Assume we want to take a copy of our database tasks and store them in a git repo on disk:
 
 ```powershell
 $common = @{ Database = "SchedulerDB"; Server = "ProdServer" }
@@ -157,7 +174,7 @@ $gitFolder = "c:\src\DatabaseTasks\ProdServer"
 Sync-DatabaseToFolder @common -FolderPath $gitFolder
 ```
 
-Then perhaps we make some changes to a task to run it once every 6 hours, instead of once everyday:
+Then perhaps we make some changes to a task to run it once every 6 hours, instead of once every day:
 
 ```powershell
 $taskUid = "E1DF0D10-1160-4878-AD3D-C627670B167E"
@@ -182,7 +199,9 @@ Sync-FolderToDatabase @common -FolderPath $gitFolder -WhatIf
 Sync-FolderToDatabase @common -FolderPath $gitFolder -Verbose
 ```
 
-### Code Style
+## Misc
+
+### Code Style - SQL
 
 - Keywords should be in lowercase
 - Identifiers should not be escaped with brackets unless required (better to avoid using a reserved keyword)
@@ -191,7 +210,25 @@ Sync-FolderToDatabase @common -FolderPath $gitFolder -Verbose
 - Constants in `ALL_CAPS`
 - Terminate statements with a semicolon
 
-[sysjobs - BOL]: https://docs.microsoft.com/en-us/sql/relational-databases/system-tables/dbo-sysjobs-transact-sql
-[context_info - BOL]: https://docs.microsoft.com/en-us/sql/t-sql/functions/context-info-transact-sql
-[invoke-sqlcmd - BOL]: https://docs.microsoft.com/en-us/sql/powershell/invoke-sqlcmd-cmdlet
+### Source Layout
+
+- `\src`
+  - `\Scripts` - Utility SQL scripts
+  - `\tsqlScheduler` - Root of the PowerShell module
+    - `\Classes` - PowerShell classes used by the module
+    - `\Public` - PowerShell functions exported by the module
+    - `\SQL` - SQL schema creation scripts
+
+### Thanks
+
+This module wouldn't exist without the exceptional current & former colleagues who are either directly responsible for ideas/code, or who have had to suffer as guinea pigs.
+
+Special thanks to @petervandivier, @morshedk, @josemaurette and @andrewalumkal.
+
+TODO: Confirm the above names (no internet :cry:)
+
+
+[sysjobs - bol]: https://docs.microsoft.com/en-us/sql/relational-databases/system-tables/dbo-sysjobs-transact-sql
+[context_info - bol]: https://docs.microsoft.com/en-us/sql/t-sql/functions/context-info-transact-sql
+[invoke-sqlcmd - bol]: https://docs.microsoft.com/en-us/sql/powershell/invoke-sqlcmd-cmdlet
 [readable-secondary]: https://docs.microsoft.com/en-us/sql/database-engine/availability-groups/windows/active-secondaries-readable-secondary-replicas-always-on-availability-groups
