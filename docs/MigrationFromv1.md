@@ -3,7 +3,7 @@
 To perform an in-place migration the suggested approach is:
 
 - Sync your tasks to the file system using the v1.x module
-- Run the below migration script, correcting any errors or ommissions
+- Run the below migration script, correcting any errors or omissions
 - Remove the v1 scheduler schema and all associated agent jobs
 - Install the v2 scheduler schema
 - Sync the folder to the database
