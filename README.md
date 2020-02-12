@@ -77,7 +77,7 @@ If `IsNotifyOnFailure` is true (1) then the specified operator (`NotifyOnFailure
 
 ## Monitoring
 
-You can monitor executions via the `scheduler.TaskExecution` table. This table is partitioned by default on a scheme which uses month of year (execution date) as the partition key.
+You can monitor executions via the `scheduler.TaskExecution` table. This table is partitioned by default on a scheme which uses month of year (execution date) as the partition key.  Every time a task is executed a row is inserted in this table.
 
 Task configuration history is available in the `scheduler.TaskHistory` table, or by querying the `scheduler.Task` table with a temporal query.
 
@@ -200,6 +200,35 @@ Sync-FolderToDatabase @common -FolderPath $gitFolder -Verbose
 ```
 
 ## Misc
+
+### Who wants to retain forever?
+
+Thanks to the nifty `truncate partition` feature, you can efficienctly remove old `TaskExecution` records without the fun of dynamic partition management.
+
+The procedure `scheduler.TaskExecutionRotate` is deployied with the schema, and by default will truncate all partitions older than 3 months.  This job is not scheduled by default, but you could add a daily job with the following:
+
+```sql
+insert into scheduler.Task
+(
+  Identifier
+  ,TSQLCommand
+  ,StartTime
+  ,Frequency
+  ,FrequencyInterval
+  ,NotifyOnFailureOperator
+)
+values
+(
+  'SomeDB-Scheduler-CleanTaskExecution'
+  ,'exec SomeDB.scheduler.TaskExecutionRotate'
+  ,'00:00:00'
+  ,'Day'
+  ,0
+  ,'SomeDB-Admin'
+)
+```
+
+You can keep data longer than 12 months, though you'll end up with multiple years in each partition (as the partition schema is based on _month of year_).
 
 ### Code Style - SQL
 
