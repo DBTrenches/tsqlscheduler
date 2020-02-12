@@ -7,6 +7,7 @@ Function Test-FolderTasks
     [ValidateNotNullOrEmpty()]
     [string] $FolderPath
   )
+  $result = $true
 
   $rawFiles = Get-ChildItem -Path $FolderPath
 
@@ -16,6 +17,7 @@ Function Test-FolderTasks
       $taskJson = $content | ConvertFrom-Json
     } catch {
       Write-Warning "File $rawFile cannot be converted to JSON"
+      $result = $false
       continue
     }
 
@@ -37,6 +39,7 @@ Function Test-FolderTasks
   
     if($null -eq $taskProperties) {
       Write-Warning "File $rawFile has no properties"
+      $result = $false
       continue
     }
 
@@ -48,7 +51,10 @@ Function Test-FolderTasks
     if($missingCount -gt 0) {
       $missingString = [string]::Join(",", $missingProperties.InputObject)
       Write-Warning "File $rawFile is missing $missingCount required properties ($missingString)"
+      $result = $false
       continue
     }
   }
+
+  $result
 }
