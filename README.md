@@ -250,14 +250,17 @@ You can keep data longer than 12 months, though you'll end up with multiple year
 
 ### Thanks
 
-This module wouldn't exist without the exceptional current & former colleagues who are either directly responsible for ideas/code, or who have had to suffer as guinea pigs.
+This module wouldn't exist without the exceptional folks who are either directly responsible for ideas/code, or who have had to suffer as guinea pigs.
 
-Special thanks to @petervandivier, @morshedk, @josemaurette and @andrewalumkal.
-
-TODO: Confirm the above names (no internet :cry:)
+Special thanks to [@petervandivier], [@morshedk], [@josemaurette] and [@andrewalumkal].
 
 
 [sysjobs - bol]: https://docs.microsoft.com/en-us/sql/relational-databases/system-tables/dbo-sysjobs-transact-sql
 [context_info - bol]: https://docs.microsoft.com/en-us/sql/t-sql/functions/context-info-transact-sql
 [invoke-sqlcmd - bol]: https://docs.microsoft.com/en-us/sql/powershell/invoke-sqlcmd-cmdlet
 [readable-secondary]: https://docs.microsoft.com/en-us/sql/database-engine/availability-groups/windows/active-secondaries-readable-secondary-replicas-always-on-availability-groups
+
+[@petervandivier]: https://github.com/petervandivier
+[@morshedk]: https://github.com/morshedk
+[@josemaurette]: https://github.com/josemaurette
+[@andrewalumkal]: https://github.com/andrewalumkal
