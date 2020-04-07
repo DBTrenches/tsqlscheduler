@@ -2,11 +2,21 @@ Function Compare-TaskLists {
   [cmdletbinding()]
   Param (
     [Parameter(Mandatory = $true)]
+    [AllowNull()]
     [Task[]] $SourceTasks,
 
     [Parameter(Mandatory = $true)]
+    [AllowNull()]
     [Task[]] $DestinationTasks
   )
+
+  if($null -eq $SourceTasks) {
+    $SourceTasks = @()
+  }
+
+  if($null -eq $DestinationTasks) {
+    $DestinationTasks = @()
+  }
 
   # Build a destination of source/destination tasks, keyed on the TaskUid
   $source = @{ }
