@@ -23,13 +23,14 @@ Function Sync-FolderToDatabase
 
   Write-Verbose "$($comparison.Add.Length) to Add, $($comparison.Update.Length) to Update, $($comparison.Remove.Length) to Remove, $($comparison.NoChange.Length) with no change."
 
+  foreach($task in $comparison.Remove) {
+    Remove-DatabaseTask -Server $Server -Database $Database -Task $task
+  }
   foreach($task in $comparison.Add) {
     Set-DatabaseTask -Server $Server -Database $Database -Task $task
   }
   foreach($task in $comparison.Update) {
     Set-DatabaseTask -Server $Server -Database $Database -Task $task
   }
-  foreach($task in $comparison.Remove) {
-    Remove-DatabaseTask -Server $Server -Database $Database -Task $task
-  }
+
 }

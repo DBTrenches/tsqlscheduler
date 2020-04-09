@@ -11,14 +11,14 @@ Function Set-DatabaseTask {
     [Task] $Task
   )
   if ($PSCmdlet.ShouldProcess("Task $($Task.TaskUid) in $Database on $Server")) {
-
+$Task
     $mergeQuery = "
 merge into scheduler.Task as target
 using (
   values (
   '$($Task.TaskUid)'
   ,'$($Task.Identifier)'
-  ,'$($Task.TSQLCommand)'
+  ,'$($Task.TSQLCommand.Replace("'","''"))'
   ,'$($Task.StartTime)'
   ,'$($Task.Frequency)'
   ,$($Task.FrequencyInterval)
