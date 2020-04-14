@@ -53,7 +53,23 @@ begin
       begin
         rollback tran;
       end
-      /* Swallow error - we don't want to take out the whole run if a single task fails to create */
+      	declare @ErrMsg varchar(256)
+		set @ErrMsg = 'Called from ' + object_name(@@PROCID) + ' ErrorMsg: '+ error_message() 
+ 		  insert into scheduler.TaskExecution
+		  (
+			  TaskUid
+			 ,StartDateTime
+			 ,EndDateTime
+			 ,IsError
+			 ,ResultMessage
+		  )
+		  values
+		  (   @taskUid            -- TaskUid - uniqueidentifier
+			 ,sysdatetime()   -- StartDateTime - datetime2(3)
+			 ,sysdatetime()   -- EndDateTime - datetime2(3)
+			 ,1            -- IsError - bit
+			 ,@ErrMsg            -- ResultMessage - nvarchar(max)
+			)
     end catch
     set @id += 1;
   end
