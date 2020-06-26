@@ -1,4 +1,7 @@
-create or alter procedure scheduler.UpsertJobsForAllTasks
+SET QUOTED_IDENTIFIER ON
+SET ANSI_NULLS ON
+GO
+alter   procedure scheduler.UpsertJobsForAllTasks
 as
 begin
   set xact_abort on;
@@ -53,6 +56,8 @@ begin
       begin
         rollback tran;
       end
+	  print error_message()
+	  print @taskUid
       /* Swallow error - we don't want to take out the whole run if a single task fails to create */
     end catch
     set @id += 1;
@@ -85,7 +90,7 @@ begin
     and   t.TaskUid = task.TaskUid
   );
 
-  set @maxId = scope_identity();
+  set @maxId = (select max(dw.Id) from #DeleteWork dw);
   set @id = 1;
 
   while @id <= @maxId
@@ -102,9 +107,11 @@ begin
       begin
         rollback tran;
       end
+	  print error_message()
+	  print @taskUid
       /* Swallow error - we don't want to take out the whole run if a single task fails to create */
     end catch
     set @id += 1;
   END
 end
-go
+GO
