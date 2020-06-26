@@ -1,7 +1,7 @@
 SET QUOTED_IDENTIFIER ON
 SET ANSI_NULLS ON
 GO
-alter   procedure scheduler.UpsertJobsForAllTasks
+create or alter   procedure scheduler.UpsertJobsForAllTasks
 as
 begin
   set xact_abort on;
