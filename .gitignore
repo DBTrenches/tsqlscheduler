@@ -8,6 +8,6 @@ deploy/tasks/*
 !deploy/tasks/SI-sample/Sample_Task.json
 !deploy/tasks/README.md
 
-.vs/*.sqlite
+.vs*
 
 todo.md
