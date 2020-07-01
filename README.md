@@ -205,7 +205,7 @@ Sync-FolderToDatabase @common -FolderPath $gitFolder -Verbose
 
 Thanks to the nifty `truncate partition` feature, you can efficienctly remove old `TaskExecution` records without the fun of dynamic partition management.
 
-The procedure `scheduler.TaskExecutionRotate` is deployied with the schema, and by default will truncate all partitions older than 3 months.  This job is not scheduled by default, but you could add a daily job with the following:
+The procedure `scheduler.TaskExecutionRotate` is deployed with the schema, and by default will truncate all partitions older than 3 months.  This job is not scheduled by default, but you could add a daily job with the following:
 
 ```sql
 insert into scheduler.Task
