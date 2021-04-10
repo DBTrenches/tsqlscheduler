@@ -7,11 +7,13 @@ Function Test-FolderTasks
     [ValidateNotNullOrEmpty()]
     [string] $FolderPath,
 
-    [switch] $Recurse
+    [switch] $Recurse,
+
+    [string] $Filter = "*.json"
   )
   $result = $true
 
-  $rawFiles = Get-ChildItem -Path $FolderPath -File -Recurse:$Recurse
+  $rawFiles = Get-ChildItem -Path $FolderPath -File -Recurse:$Recurse -Filter $Filter
 
   foreach($rawFile in $rawFiles) {
     $content = Get-Content -LiteralPath $rawFile -Raw 
