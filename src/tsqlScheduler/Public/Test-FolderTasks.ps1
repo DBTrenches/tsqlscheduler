@@ -9,7 +9,7 @@ Function Test-FolderTasks
   )
   $result = $true
 
-  $rawFiles = Get-ChildItem -Path $FolderPath
+  $rawFiles = Get-ChildItem -Path $FolderPath -File
 
   foreach($rawFile in $rawFiles) {
     $content = Get-Content -LiteralPath $rawFile -Raw 
