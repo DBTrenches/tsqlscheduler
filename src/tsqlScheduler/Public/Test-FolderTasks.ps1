@@ -5,11 +5,13 @@ Function Test-FolderTasks
     [Parameter(Mandatory=$true)]
     [ValidateScript({ Test-Path -Path $PSItem })]
     [ValidateNotNullOrEmpty()]
-    [string] $FolderPath
+    [string] $FolderPath,
+
+    [switch] $Recurse
   )
   $result = $true
 
-  $rawFiles = Get-ChildItem -Path $FolderPath -File
+  $rawFiles = Get-ChildItem -Path $FolderPath -File -Recurse:$Recurse
 
   foreach($rawFile in $rawFiles) {
     $content = Get-Content -LiteralPath $rawFile -Raw 
