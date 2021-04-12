@@ -5,11 +5,15 @@ Function Test-FolderTasks
     [Parameter(Mandatory=$true)]
     [ValidateScript({ Test-Path -Path $PSItem })]
     [ValidateNotNullOrEmpty()]
-    [string] $FolderPath
+    [string] $FolderPath,
+
+    [switch] $Recurse,
+
+    [string] $Filter = "*.json"
   )
   $result = $true
 
-  $rawFiles = Get-ChildItem -Path $FolderPath
+  $rawFiles = Get-ChildItem -Path $FolderPath -File -Recurse:$Recurse -Filter $Filter
 
   foreach($rawFile in $rawFiles) {
     $content = Get-Content -LiteralPath $rawFile -Raw 
