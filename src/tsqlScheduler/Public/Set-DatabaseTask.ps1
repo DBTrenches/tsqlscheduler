@@ -82,6 +82,6 @@ when matched then update
 ;
 "
 
-    Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query $mergeQuery
+    Invoke-SqlCmd -TrustServerCertificate -ServerInstance $Server -Database $Database -Query $mergeQuery
   }
 }

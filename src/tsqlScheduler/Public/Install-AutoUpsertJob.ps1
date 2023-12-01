@@ -40,6 +40,6 @@ values
     ,1
 )
 "
-    Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query $query
-    Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query "exec scheduler.CreateJobFromTask @taskUid = '$taskUid', @overwriteExisting = 1;"
+    Invoke-SqlCmd -TrustServerCertificate -ServerInstance $Server -Database $Database -Query $query
+    Invoke-SqlCmd -TrustServerCertificate -ServerInstance $Server -Database $Database -Query "exec scheduler.CreateJobFromTask @taskUid = '$taskUid', @overwriteExisting = 1;"
 }
