@@ -25,7 +25,7 @@ See also [Removing the Scheduler](docs/Installation.md#uninstallation)
 - [The server time must be UTC](#server-time)
 - Replicas that host jobs must be configured as a [readable secondary][readable-secondary]
 - All requisite DBs must be created and added to the AG before installation.
-- Deployment scripts use integrated security. Use of SQL Logins has not been tested but can be attempted but adding the appropriate [`Invoke-SqlCmd`][invoke-sqlcmd - bol] flags in the [tsqlScheduler module](src/tsqlScheduler/tsqlScheduler.psm1).
+- Deployment scripts use integrated security. Use of SQL Logins has not been tested but can be attempted but adding the appropriate [`Invoke-SqlCmd`][Invoke-SqlCmd - bol] flags in the [tsqlScheduler module](src/tsqlScheduler/tsqlScheduler.psm1).
 - Consider environment. Tasks in the HA scheduler with any dependencies outside the AG may not succeed after failover unless all dependencies are already available on the new primary.
 
 ## Managing Tasks
@@ -257,7 +257,7 @@ Special thanks to [@petervandivier], [@morshedk], [@josemaurette] and [@andrewal
 
 [sysjobs - bol]: https://docs.microsoft.com/en-us/sql/relational-databases/system-tables/dbo-sysjobs-transact-sql
 [context_info - bol]: https://docs.microsoft.com/en-us/sql/t-sql/functions/context-info-transact-sql
-[invoke-sqlcmd - bol]: https://docs.microsoft.com/en-us/sql/powershell/invoke-sqlcmd-cmdlet
+[Invoke-SqlCmd - bol]: https://docs.microsoft.com/en-us/sql/powershell/invoke-sqlcmd-cmdlet
 [readable-secondary]: https://docs.microsoft.com/en-us/sql/database-engine/availability-groups/windows/active-secondaries-readable-secondary-replicas-always-on-availability-groups
 
 [@petervandivier]: https://github.com/petervandivier

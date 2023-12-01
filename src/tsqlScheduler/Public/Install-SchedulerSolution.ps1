@@ -11,7 +11,7 @@
     Write-Verbose ">>>>>>> $database"
     Write-Verbose "--------------------------------------------------------------------"
 
-    Invoke-SqlCmd -ServerInstance $server -Database $database -Query "create schema scheduler authorization dbo;"
+    Invoke-SqlCmd -TrustServerCertificate -ServerInstance $server -Database $database -Query "create schema scheduler authorization dbo;"
 
     Write-Verbose "--------------------------------------------------------------------"
 
@@ -24,12 +24,12 @@
         select cast('$instanceGuid' as uniqueidentifier) as Id
     );
 "@
-    Invoke-SqlCmd -ServerInstance $server -Database $database -Query $instanceFunction
+    Invoke-SqlCmd -TrustServerCertificate -ServerInstance $server -Database $database -Query $instanceFunction
 
     Write-Verbose "--------------------------------------------------------------------"
 
     $files | foreach-object { 
         Write-Verbose $_.FullName
-        Invoke-SqlCmd -ServerInstance $server -Database $database -InputFile $_.FullName
+        Invoke-SqlCmd -TrustServerCertificate -ServerInstance $server -Database $database -InputFile $_.FullName
     }
 }

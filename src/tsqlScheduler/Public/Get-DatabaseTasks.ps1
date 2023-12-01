@@ -30,7 +30,7 @@ from scheduler.Task
     $getTasksQuery += "where TaskUid = '$TaskUid'"
   }
 
-  $rawTasks = @(Invoke-Sqlcmd -ServerInstance $Server -Database $Database -Query $getTasksQuery)
+  $rawTasks = @(Invoke-SqlCmd -TrustServerCertificate -ServerInstance $Server -Database $Database -Query $getTasksQuery)
   $tasks = @()
   foreach($rawTask in $rawTasks) {
     $task = [Task]::new()

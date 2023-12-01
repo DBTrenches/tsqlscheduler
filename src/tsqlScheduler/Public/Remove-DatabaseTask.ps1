@@ -17,6 +17,6 @@ Function Remove-DatabaseTask {
 delete from scheduler.Task where TaskUid = '$($Task.TaskUid)'
 "
 
-    Invoke-SqlCmd -ServerInstance $Server -Database $Database -Query $deleteQuery
+    Invoke-SqlCmd -TrustServerCertificate -ServerInstance $Server -Database $Database -Query $deleteQuery
   }
 }
