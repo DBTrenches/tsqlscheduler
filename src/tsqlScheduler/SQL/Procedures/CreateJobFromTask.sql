@@ -52,7 +52,9 @@ begin
   from  scheduler.GetInstanceId() as id
   for json path, without_array_wrapper)
   
-  set @command = 'exec ' + @db + '.scheduler.ExecuteTask @taskUid = ''' + cast(@taskUid as varchar(36)) + ''';';
+  set @command
+       = N'if databasepropertyex(''' + @db + ''',''Updateability'') = ''READ_WRITE'' exec ' + @db + N'.scheduler.ExecuteTask @taskUid = '''
+       + cast (@taskUid as varchar(36)) + N''';';
 
   exec scheduler.CreateAgentJob
       @taskUid = @taskUid
